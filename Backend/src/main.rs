@@ -33,6 +33,9 @@ async fn get_random_number() -> Json<RandomNumber> {
 
 #[tokio::main]
 async fn main() {
+    let _ = speedrun_utils::read_run_data_from_file("data.json");
+    let _ = speedrun_utils::get_runs_for_game(ASYLUM_GAME_ID).await.unwrap();
+
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET]);
@@ -55,9 +58,6 @@ async fn main() {
     //    .unwrap();
 
     //let leaderboard: types::Leaderboard = endpoint.query_async(&client).await?;
-
-    let _ = speedrun_utils::read_run_data_from_file("data.json");
-    let _ = speedrun_utils::get_runs_for_game(ASYLUM_GAME_ID);
 
     // let client = SpeedrunApiBuilder::default().build_async().unwrap();
     // let endpoint = Runs::builder().build().unwrap();
