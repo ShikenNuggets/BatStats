@@ -69,24 +69,32 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
     endpoint.stream(&client)
         .take(10)
         .try_for_each_concurrent(5, |run: types::Run|{
-			let run_data = RunData
-			{
-				id: (run.id).to_string(),
-				run_date: run.date.clone(),
-				submitted_date: run.submitted.clone(),
-				game_id: run.game.to_string(),
-				category_id: run.category.to_string(),
-				level_id: level_id_to_string(&run.level),
-				player_id: get_primary_player_id(&run.players),
-				is_user: primary_player_is_user(&run.players),
-				verified: run_is_verified(&run),
-				platform: "".to_string(), // TODO
-				duration_ms: 0, // TODO
-				variables: HashMap::new()
-			};
-			
-			runs.push(run_data);
-            future::ready(Ok(()))
+			match run.status{
+				types::Status::Rejected { examiner: _, reason: _ } => {
+					future::ready(Ok(()))
+				},
+				_ => {
+					let run_data = RunData
+					{
+						id: (run.id).to_string(),
+						run_date: run.date.clone(),
+						submitted_date: run.submitted.clone(),
+						game_id: run.game.to_string(),
+						category_id: run.category.to_string(),
+						level_id: level_id_to_string(&run.level),
+						player_id: get_primary_player_id(&run.players),
+						is_user: primary_player_is_user(&run.players),
+						verified: run_is_verified(&run),
+						platform: "".to_string(), // TODO
+						duration_ms: 0, // TODO
+						variables: HashMap::new()
+					};
+					
+					println!("{}", run.weblink);
+					runs.push(run_data);
+					future::ready(Ok(()))
+				}
+			}
         })
         .await.unwrap();
 
