@@ -57,18 +57,18 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
 	let client = SpeedrunApiBuilder::new().build_async()?;
 
 	let endpoint = Runs::builder()
-        .status(RunStatus::Verified)
-        .orderby(RunsSorting::VerifyDate)
-        .direction(Direction::Desc)
+		.status(RunStatus::Verified)
+		.orderby(RunsSorting::VerifyDate)
+		.direction(Direction::Desc)
 		.game(game_id)
-        .build()
-        .unwrap();
+		.build()
+		.unwrap();
 
 	let mut runs: Vec<RunData> = Vec::new();
 
-    endpoint.stream(&client)
-        .take(10)
-        .try_for_each_concurrent(5, |run: types::Run|{
+	endpoint.stream(&client)
+		.take(10)
+		.try_for_each_concurrent(5, |run: types::Run|{
 			match run.status{
 				types::Status::Rejected { examiner: _, reason: _ } => {
 					future::ready(Ok(()))
@@ -95,8 +95,8 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
 					future::ready(Ok(()))
 				}
 			}
-        })
-        .await.unwrap();
+		})
+		.await.unwrap();
 
 	Ok(runs)
 }
