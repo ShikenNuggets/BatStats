@@ -32,23 +32,23 @@ pub fn read_run_data_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<R
 	Ok(entries)
 }
 
-fn level_id_to_string<'a>(level_id: Option<LevelId<'a>>) -> Option<String>{
-	return level_id.map(|id| id.to_string());
+fn level_id_to_string<'a>(level_id: &Option<LevelId<'a>>) -> Option<String>{
+	return level_id.as_ref().map(|id| id.to_string());
 }
 
-fn get_primary_player_id<'a>(players: Vec<types::Player<'a>>) -> String {
+fn get_primary_player_id<'a>(players:&[types::Player<'a>]) -> String {
 	return match players.get(0) {
-		Some(types::Player::User { id, uri: _ }) => id.to_string()
-		Some(types::Player::Guest { name, uri: _ }) => name.clone()
+		Some(types::Player::User { id, uri: _ }) => id.to_string(),
+		Some(types::Player::Guest { name, uri: _ }) => name.clone(),
 		None => "".to_string(),
 	};
 }
 
-fn primary_player_is_user<'a>(players: Vec<types::Player<'a>>) -> bool {
+fn primary_player_is_user<'a>(players: &[types::Player<'a>]) -> bool {
 	return matches!(players.get(0), Some(types::Player::User { id: _, uri: _ }));
 }
 
-fn run_is_verified<'a>(run: types::Run<'_>) -> bool{
+fn run_is_verified<'a>(run: &types::Run<'_>) -> bool{
 	return matches!(run.status, types::Status::Verified { examiner: _, verify_date: _ });
 }
 
@@ -69,25 +69,17 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
     endpoint.stream(&client)
         .take(10)
         .try_for_each_concurrent(5, |run: types::Run|{
-			//run.category
-			//run.game
-			//run.level
-			//run.players
-			//run.status
-			//run.system
-			//run.times
-			//run.values
 			let run_data = RunData
 			{
 				id: (run.id).to_string(),
-				run_date: run.date,
-				submitted_date: run.submitted,
+				run_date: run.date.clone(),
+				submitted_date: run.submitted.clone(),
 				game_id: run.game.to_string(),
 				category_id: run.category.to_string(),
-				level_id: level_id_to_string(run.level),
-				player_id: get_primary_player_id(run.players),
-				is_user: primary_player_is_user(run.players),
-				verified: run_is_verified(run),
+				level_id: level_id_to_string(&run.level),
+				player_id: get_primary_player_id(&run.players),
+				is_user: primary_player_is_user(&run.players),
+				verified: run_is_verified(&run),
 				platform: "".to_string(), // TODO
 				duration_ms: 0, // TODO
 				variables: HashMap::new()
