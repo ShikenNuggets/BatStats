@@ -1,3 +1,5 @@
+use crate::speedrun_api::types::core;
+
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -23,27 +25,6 @@ pub struct CategoryPlayers{
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SrcLinkType{
-	#[serde(rename = "self")]
-	Self_,
-
-	Game,
-	Variables,
-	Records,
-	Runs,
-	Leaderboard
-}
-
-#[derive(Deserialize)]
-pub struct SrcLink{
-	#[serde(rename = "rel")]
-	link_type : SrcLinkType,
-
-	uri: String
-}
-
-#[derive(Deserialize)]
 pub struct Category{
 	pub id: String,
 	pub name: String,
@@ -55,7 +36,7 @@ pub struct Category{
 	pub rules: String,
 	pub players: CategoryPlayers,
 	pub miscellaneous: bool,
-	pub links: Vec<SrcLink>
+	pub links: Vec<core::SrcLink>
 }
 
 #[derive(Deserialize)]
