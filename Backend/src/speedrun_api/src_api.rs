@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash, result};
 
 use crate::speedrun_api::http_utils;
-use crate::speedrun_api::src_api_types;
+use crate::speedrun_api::types;
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
 
@@ -35,7 +35,7 @@ pub async fn get_all_categories_for_game(game: &str){
 		}
 	};
 
-	let result: Result<src_api_types::CategoryResponse, serde_json::Error> = serde_json::from_str(&body);
+	let result: Result<types::category::CategoryResponse, serde_json::Error> = serde_json::from_str(&body);
 	match result {
 		Ok(parsed) => {
 			for var in parsed.data{
