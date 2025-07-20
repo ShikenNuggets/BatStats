@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash, result};
 
 use crate::speedrun_api::http_utils;
-use crate::speedrun_api::types;
+use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
 
@@ -23,7 +23,9 @@ pub async fn get_game_id(game_name: &str){
 	println!("{}", body);
 }
 
-pub async fn get_all_categories_for_game(game: &str){
+pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
+	let mut ret_val: Vec<category::Category> = Vec::new();
+
 	let request_str = format!("{}games/{}/categories", API_BASE_URL, game);
 	let result = http_utils::get_http_result(&request_str).await;
 
@@ -31,7 +33,7 @@ pub async fn get_all_categories_for_game(game: &str){
 		Ok(body) => body,
 		Err(err) => {
 			println!("HTTP request returned an error: {}", err);
-			return;
+			return Vec::new();
 		}
 	};
 
@@ -40,12 +42,15 @@ pub async fn get_all_categories_for_game(game: &str){
 		Ok(parsed) => {
 			for var in parsed.data{
 				println!("{} - {}", var.id, var.name);
+				ret_val.push(var);
 			}
 		},
 		Err(err) => {
 			println!("Failed to parse category response JSON: {}", err);
 		}
 	}
+
+	return ret_val;
 
 	//let map = match result {
 	//	Ok(parsed) => parsed,
