@@ -1,18 +1,26 @@
+use std::collections::HashMap;
+
 use crate::speedrun_api::types::core;
+use crate::speedrun_api::types::run;
 
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub enum TimingType{
+	#[serde(rename = "ingame")]
 	Ingame,
-	Realtime,
-	Realtime_noloads,
+
+	#[serde(rename = "realtime")]
+	RealTime,
+
+	#[serde(rename = "realtime_noloads")]
+	RealTimeNoLoads,
 }
 
 #[derive(Deserialize)]
 pub struct LeaderboardRun{
-	place: i32,
-	run: String
+	pub place: i32,
+	pub run: run::Run
 }
 
 #[derive(Deserialize)]
@@ -27,7 +35,12 @@ pub struct Leaderboard{
 	emulators: Option<String>,
 	video_only: bool,
 	timing: TimingType,
-	values: Vec<String>, // TODO - Variable values
-	runs: Vec<String>,
-	pub links: Vec<core::SrcLink>
+	values: Vec<HashMap<String, String>>,
+	pub runs: Vec<LeaderboardRun>,
+	links: Vec<core::SrcLink>
+}
+
+#[derive(Deserialize)]
+pub struct LeaderboardResponse{
+	pub data: Leaderboard
 }
