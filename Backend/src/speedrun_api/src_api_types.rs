@@ -1,0 +1,64 @@
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CategoryType{
+	PerGame,
+	PerLevel
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CategoryPlayersType{
+	Exactly,
+	UpTo,
+}
+
+#[derive(Deserialize)]
+pub struct CategoryPlayers{
+	#[serde(rename = "type")]
+	players_type: CategoryPlayersType,
+
+	value: i32
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SrcLinkType{
+	#[serde(rename = "self")]
+	Self_,
+
+	Game,
+	Variables,
+	Records,
+	Runs,
+	Leaderboard
+}
+
+#[derive(Deserialize)]
+pub struct SrcLink{
+	#[serde(rename = "rel")]
+	link_type : SrcLinkType,
+
+	uri: String
+}
+
+#[derive(Deserialize)]
+pub struct Category{
+	pub id: String,
+	pub name: String,
+	pub weblink: String,
+
+	#[serde(rename = "type")]
+	pub category_type: CategoryType,
+
+	pub rules: String,
+	pub players: CategoryPlayers,
+	pub miscellaneous: bool,
+	pub links: Vec<SrcLink>
+}
+
+#[derive(Deserialize)]
+pub struct CategoryResponse{
+	pub data: Vec<Category>
+}
