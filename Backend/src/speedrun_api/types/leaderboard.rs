@@ -35,7 +35,7 @@ pub struct Leaderboard{
 	emulators: Option<String>,
 	video_only: bool,
 	timing: TimingType,
-	values: Vec<HashMap<String, String>>,
+	values: HashMap<String, String>,
 	pub runs: Vec<LeaderboardRun>,
 	links: Vec<core::SrcLink>
 }

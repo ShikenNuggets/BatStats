@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -30,21 +30,30 @@ pub struct RunStatus{
 }
 
 #[derive(Deserialize)]
-pub struct RunPlayers{
-	rel: String,
-	id: String,
-	uri: String
+#[serde(rename_all = "lowercase")]
+enum RunPlayerType{
+	User,
+	Guest
 }
 
 #[derive(Deserialize)]
+pub struct RunPlayers{
+	rel: RunPlayerType,
+	id: Option<String>,
+	name: Option<String>,
+	uri: String
+}
+
+// TODO - Parse times into ISO 8601 duration
+#[derive(Deserialize)]
 pub struct RunTimes{
-	primary: TimeDelta,
+	primary: String,
 	primary_t: i64,
-	realtime: Option<TimeDelta>,
+	realtime: Option<String>,
 	realtime_t: Option<i64>,
-	realtime_noloads: Option<TimeDelta>,
+	realtime_noloads: Option<String>,
 	realtime_noloads_t: Option<i64>,
-	ingame: Option<TimeDelta>,
+	ingame: Option<String>,
 	ingame_t: Option<i64>
 }
 
@@ -56,6 +65,12 @@ pub struct RunSystem{
 }
 
 #[derive(Deserialize)]
+pub struct RunSplits{
+	rel: String,
+	uri: String
+}
+
+#[derive(Deserialize)]
 pub struct Run{
 	pub id: String,
 	weblink: String,
@@ -64,11 +79,11 @@ pub struct Run{
 	category: String,
 	comment: Option<String>,
 	status: RunStatus,
-	players: RunPlayers,
-	date: DateTime<Utc>,
-	submitted: DateTime<Utc>,
+	players: Vec<RunPlayers>,
+	date: Option<NaiveDate>,
+	submitted: Option<DateTime<Utc>>,
 	times: RunTimes,
 	system: RunSystem,
-	splits: Option<String>,
-	values: Vec<HashMap<String, String>>
+	splits: Option<RunSplits>,
+	values: HashMap<String, String>
 }

@@ -7,6 +7,7 @@ pub enum SrcLinkType{
 	Self_,
 
 	Game,
+	Category,
 	Variables,
 	Records,
 	Runs,
