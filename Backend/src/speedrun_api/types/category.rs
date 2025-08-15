@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::speedrun_api::types::core;
 
 use serde::Deserialize;

@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 
-use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
