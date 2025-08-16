@@ -1,4 +1,5 @@
 mod speedrun_utils;
+mod speedrun_api;
 
 const ASYLUM_GAME_ID: &str = "4pd0p06e";
 const CITY_GAME_ID: &str = "x3692ldl";
@@ -12,13 +13,16 @@ use axum::{
 };
 
 use rand::Rng;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use tower_http::cors::CorsLayer;
 use tokio::net::TcpListener;
 
-use std::future;
+use std::{collections::HashMap};
 
-use futures::{ StreamExt, TryStreamExt };
+
+use speedrun_api::src_api;
+
+use crate::speedrun_api::types::{run::{RunPlayer, RunPlayerType}};
 
 #[derive(Serialize)]
 struct RandomNumber{
@@ -31,10 +35,55 @@ async fn get_random_number() -> Json<RandomNumber> {
     Json(RandomNumber { value: random_value })
 }
 
+async fn get_player_name(player : &RunPlayer) -> Option<String>{
+    if let RunPlayerType::Guest = player.rel{
+        return player.name.clone();
+    }
+
+    if player.id.is_none(){
+        return player.name.clone();
+    }
+
+    let user = src_api::get_user(&player.id.clone().unwrap()).await;
+    if user.is_none(){
+        return None;
+    }
+
+    return Some(user.unwrap().data.names.international);
+}
+
 #[tokio::main]
-async fn main() {
-    let _ = speedrun_utils::read_run_data_from_file("data.json");
-    let _ = speedrun_utils::get_runs_for_game(ASYLUM_GAME_ID).await.unwrap();
+async fn main(){
+    let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
+    println!("Processing {} leaderboards...", asylum_leaderboards.len());
+
+    let mut world_records: HashMap<String, i64> = HashMap::new();
+    for lb in asylum_leaderboards{
+        let wr_run = lb.runs.first();
+        if !wr_run.is_some(){
+            continue;
+        }
+
+        let player = &wr_run.unwrap().run.players.first();
+        if !player.is_some(){
+            continue;
+        }
+
+        let player_name = get_player_name(player.unwrap()).await;
+        if player_name.is_none(){
+            continue;
+        }
+
+        let player_name = player_name.unwrap();
+
+        if let Some(value) = world_records.get_mut(&player_name){
+            *value += 1;
+        }else if !world_records.contains_key(&player_name){
+            world_records.insert(player_name, 1);
+        }
+    }
+
+    println!("{:?}", world_records);
 
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
@@ -48,41 +97,4 @@ async fn main() {
     println!("Backend istening on http://{}", listener.local_addr().unwrap());
 
     axum::serve(listener, app).await.unwrap();
-
-    //let client = SpeedrunApiBuilder::new().build_async()?;
-
-    //let endpoint = FullGameLeaderboard::builder()
-    //    .game("xldev513") // example game
-    //    .category("rklg3rdn")
-    //    .build()
-    //    .unwrap();
-
-    //let leaderboard: types::Leaderboard = endpoint.query_async(&client).await?;
-
-    // let client = SpeedrunApiBuilder::default().build_async().unwrap();
-    // let endpoint = Runs::builder().build().unwrap();
-    // endpoint.stream(&client)
-    //     .take(30)
-    //     .try_for_each_concurrent(10, |run: types::Run| {
-    //         println!("{}", run.weblink);
-    //         future::ready(Ok(()))
-    //     })
-    //     .await.unwrap();
-
-    // let endpoint = Runs::builder()
-    //     .status(RunStatus::Verified)
-    //     .orderby(RunsSorting::VerifyDate)
-    //     .direction(Direction::Desc)
-    //     .build()
-    //     .unwrap();
-
-    // endpoint.stream(&client)
-    //     .take(10)
-    //     .try_for_each_concurrent(5, |run: types::Run|{
-    //         println!("{}", run.weblink);
-    //         future::ready(Ok(()))
-    //     })
-    //     .await.unwrap();
-
-    //Ok(())
 }
