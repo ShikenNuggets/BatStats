@@ -21,9 +21,9 @@ pub enum CategoryPlayersType{
 #[derive(Deserialize)]
 pub struct CategoryPlayers{
 	#[serde(rename = "type")]
-	players_type: CategoryPlayersType,
+	pub players_type: CategoryPlayersType,
 
-	value: i32
+	pub value: i32
 }
 
 #[derive(Deserialize)]

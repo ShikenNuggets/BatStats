@@ -19,7 +19,7 @@ pub enum SrcLinkType{
 #[derive(Deserialize)]
 pub struct SrcLink{
 	#[serde(rename = "rel")]
-	link_type : SrcLinkType,
+	pub link_type : SrcLinkType,
 
-	uri: String
+	pub uri: String
 }

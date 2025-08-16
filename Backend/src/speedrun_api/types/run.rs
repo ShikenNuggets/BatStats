@@ -7,17 +7,17 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct RunVideo{
-	uri: String
+	pub uri: String
 }
 
 #[derive(Deserialize)]
 pub struct RunVideos{
-	links: Vec<RunVideo>
+	pub links: Vec<RunVideo>
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum RunStatusType{
+pub enum RunStatusType{
 	Verified,
 	Pending,
 	Rejected
@@ -33,17 +33,17 @@ pub struct RunStatus{
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum RunPlayerType{
+pub enum RunPlayerType{
 	User,
 	Guest
 }
 
 #[derive(Deserialize)]
-pub struct RunPlayers{
-	rel: RunPlayerType,
-	id: Option<String>,
-	name: Option<String>,
-	uri: String
+pub struct RunPlayer{
+	pub rel: RunPlayerType,
+	pub id: Option<String>,
+	pub name: Option<String>,
+	pub uri: String
 }
 
 // TODO - Parse times into ISO 8601 duration
@@ -75,17 +75,17 @@ pub struct RunSplits{
 #[derive(Deserialize)]
 pub struct Run{
 	pub id: String,
-	weblink: String,
-	game: String,
-	level: Option<String>,
-	category: String,
-	comment: Option<String>,
-	status: RunStatus,
-	players: Vec<RunPlayers>,
-	date: Option<NaiveDate>,
-	submitted: Option<DateTime<Utc>>,
-	times: RunTimes,
-	system: RunSystem,
-	splits: Option<RunSplits>,
-	values: HashMap<String, String>
+	pub weblink: String,
+	pub game: String,
+	pub level: Option<String>,
+	pub category: String,
+	pub comment: Option<String>,
+	pub status: RunStatus,
+	pub players: Vec<RunPlayer>,
+	pub date: Option<NaiveDate>,
+	pub submitted: Option<DateTime<Utc>>,
+	pub times: RunTimes,
+	pub system: RunSystem,
+	pub splits: Option<RunSplits>,
+	pub values: HashMap<String, String>
 }

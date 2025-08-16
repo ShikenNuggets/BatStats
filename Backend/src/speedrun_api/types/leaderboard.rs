@@ -28,18 +28,18 @@ pub struct LeaderboardRun{
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Leaderboard{
-	weblink: String,
-	game: String,
-	category: String,
-	level: Option<String>,
-	platform: Option<String>,
-	region: Option<String>,
-	emulators: Option<String>,
-	video_only: bool,
-	timing: TimingType,
-	values: HashMap<String, String>,
+	pub weblink: String,
+	pub game: String,
+	pub category: String,
+	pub level: Option<String>,
+	pub platform: Option<String>,
+	pub region: Option<String>,
+	pub emulators: Option<String>,
+	pub video_only: bool,
+	pub timing: TimingType,
+	pub values: HashMap<String, String>,
 	pub runs: Vec<LeaderboardRun>,
-	links: Vec<core::SrcLink>
+	pub links: Vec<core::SrcLink>
 }
 
 #[derive(Deserialize)]
