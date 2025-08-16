@@ -1,8 +1,8 @@
-use std::{collections::HashMap, future, io::BufReader, path::Path, sync::Arc};
+/*use std::{collections::HashMap, future, io::BufReader, path::Path, sync::Arc};
 
 use futures::{StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
-use speedrun_api::{api::{levels::LevelId, runs::{RunStatus, Runs, RunsSorting}, Direction, PagedEndpointExt}, error::SpeedrunApiError, types::{self, Player}, SpeedrunApiBuilder};
+use speedrun_api::{api::{levels::LevelId, runs::{RunStatus, Runs, RunsSorting}, AsyncQuery, Direction, PagedEndpointExt}, error::SpeedrunApiError, types::{self, Player}, SpeedrunApiBuilder};
 use std::fs::File;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -20,6 +20,8 @@ pub struct RunData{
 	duration_ms: i64,
 	variables: HashMap<String, String>
 }
+
+
 
 pub fn read_run_data_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<RunData>> {
 	if !path.as_ref().exists(){
@@ -52,13 +54,13 @@ fn run_is_verified<'a>(run: &types::Run<'_>) -> bool{
 	return matches!(run.status, types::Status::Verified { examiner: _, verify_date: _ });
 }
 
-pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunApiError>{
+pub async fn get_new_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunApiError>{
 	println!("Getting runs for game {}...", game_id);
 	let client = SpeedrunApiBuilder::new().build_async()?;
 
 	let endpoint = Runs::builder()
 		.status(RunStatus::Verified)
-		.orderby(RunsSorting::VerifyDate)
+		.orderby(RunsSorting::Submitted)
 		.direction(Direction::Desc)
 		.game(game_id)
 		.build()
@@ -66,12 +68,30 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
 
 	let mut runs: Vec<RunData> = Vec::new();
 
-	endpoint.stream(&client)
-		.take(10)
-		.try_for_each_concurrent(5, |run: types::Run|{
+	let last_known_run_id = "";
+	let mut current_offset: usize = 0;
+	while true {
+		let single_page = endpoint.single_page()
+			.offset(current_offset)
+			.page_size(200)
+			.build();
+
+		//endpoint.single_page()
+
+		let current_page_runs: (Vec<types::Run>, types::Pagination) = single_page.query_async(&client).await.unwrap();
+
+		let mut runs_found: usize = 0;
+		for run in current_page_runs.0{
+			runs_found += 1;
+		
+			if run.id.to_string() == last_known_run_id {
+				println!("Found last known run ID, halting run search");
+				break;
+			}
+
 			match run.status{
 				types::Status::Rejected { examiner: _, reason: _ } => {
-					future::ready(Ok(()))
+					continue;
 				},
 				_ => {
 					let run_data = RunData
@@ -89,14 +109,20 @@ pub async fn get_runs_for_game(game_id: &str) -> Result<Vec<RunData>, SpeedrunAp
 						duration_ms: 0, // TODO
 						variables: HashMap::new()
 					};
-					
+						
 					println!("{}", run.weblink);
 					runs.push(run_data);
-					future::ready(Ok(()))
 				}
 			}
-		})
-		.await.unwrap();
+		}
 
-	Ok(runs)
+		if runs_found < 20{
+			break;
+		}
+
+		current_offset += runs_found;
+	}
+
+	return Ok(runs);
 }
+*/
