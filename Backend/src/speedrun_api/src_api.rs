@@ -1,8 +1,8 @@
-use std::{collections::HashMap, hash::Hash, result};
+use std::{collections::HashMap};
 
 use crate::speedrun_api::http_utils;
 use crate::speedrun_api::types::category::CategoryType;
-use crate::speedrun_api::types::leaderboard::LeaderboardResponse;
+use crate::speedrun_api::types::leaderboard::Leaderboard;
 use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
@@ -64,7 +64,7 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	//println!("{:?}", map);
 }
 
-pub async fn get_leaderboard(game: &str, category: &str) -> Option<LeaderboardResponse>{
+pub async fn get_leaderboard(game: &str, category: &str) -> Option<types::leaderboard::Leaderboard>{
 	let str = format!("{}leaderboards/{}/category/{}", API_BASE_URL, game, category);
 	let result = http_utils::get_http_result_with_args(&str, HashMap::new()).await;
 
@@ -85,11 +85,11 @@ pub async fn get_leaderboard(game: &str, category: &str) -> Option<LeaderboardRe
 	 	}
 	};
 
-	return Some(map);
+	return Some(map.data);
 }
 
-pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<LeaderboardResponse>{
-	let mut result: Vec<LeaderboardResponse> = Vec::new();
+pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
+	let mut result: Vec<Leaderboard> = Vec::new();
 
 	let categories = get_all_categories_for_game(game_id).await;
 	for cat in categories{
@@ -104,4 +104,28 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<LeaderboardResp
 	}
 
 	return result;
+}
+
+pub async fn get_user(user_id: &str) -> Option<types::user::UserResponse>{
+	let str = format!("{}users/{}", API_BASE_URL, user_id);
+	let result = http_utils::get_http_result(&str).await;
+
+	let body = match result{
+		Ok(body) => body,
+		Err(err) => {
+			println!("Failed to parse JSON: {}", err);
+			return None;
+		}
+	};
+
+	let result: Result<types::user::UserResponse, serde_json::Error> = serde_json::from_str(&body);
+	let map = match result {
+		Ok(parsed) => parsed,
+		Err(err) => {
+			println!("Failed to parse JSON: {}", err);
+			return None;
+		}
+	};
+
+	return Some(map);
 }
