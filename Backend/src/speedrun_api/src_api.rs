@@ -75,7 +75,7 @@ pub async fn get_leaderboard(game: &str, category: &str) -> Option<LeaderboardRe
 			return None;
 		}
 	};
-	
+
 	let result: Result<types::leaderboard::LeaderboardResponse, serde_json::Error> = serde_json::from_str(&body);
 	let map = match result {
 		Ok(parsed) => parsed,
@@ -86,4 +86,22 @@ pub async fn get_leaderboard(game: &str, category: &str) -> Option<LeaderboardRe
 	};
 
 	return Some(map);
+}
+
+pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<LeaderboardResponse>{
+	let mut result: Vec<LeaderboardResponse> = Vec::new();
+
+	let categories = get_all_categories_for_game(game_id).await;
+	for cat in categories{
+		if let CategoryType::PerLevel = cat.category_type{
+			continue; // Ignore level categories
+		}
+
+		let response = get_leaderboard(game_id, &cat.id).await;
+		if response.is_some(){
+			result.push(response.unwrap());
+		}
+	}
+
+	return result;
 }
