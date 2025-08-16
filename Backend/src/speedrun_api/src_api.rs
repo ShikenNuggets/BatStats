@@ -1,6 +1,8 @@
 use std::{collections::HashMap, hash::Hash, result};
 
 use crate::speedrun_api::http_utils;
+use crate::speedrun_api::types::category::CategoryType;
+use crate::speedrun_api::types::leaderboard::LeaderboardResponse;
 use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
@@ -62,7 +64,7 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	//println!("{:?}", map);
 }
 
-pub async fn leaderboard(game: &str, category: &str){
+pub async fn get_leaderboard(game: &str, category: &str) -> Option<LeaderboardResponse>{
 	let str = format!("{}leaderboards/{}/category/{}", API_BASE_URL, game, category);
 	let result = http_utils::get_http_result_with_args(&str, HashMap::new()).await;
 
@@ -70,17 +72,18 @@ pub async fn leaderboard(game: &str, category: &str){
 		Ok(body) => body,
 		Err(err) => {
 			println!("HTTP request returned an error: {}", err);
-			return;
+			return None;
 		}
 	};
-
-	let result = serde_json::from_str(&body);
+	
+	let result: Result<types::leaderboard::LeaderboardResponse, serde_json::Error> = serde_json::from_str(&body);
 	let map = match result {
 		Ok(parsed) => parsed,
-		Err(err) => {
-			println!("Failed to parse JSON: {}", err);
-		}
+	 	Err(err) => {
+	 		println!("Failed to parse JSON: {}", err);
+	 		return None;
+	 	}
 	};
 
-	println!("{:?}", map);
+	return Some(map);
 }
