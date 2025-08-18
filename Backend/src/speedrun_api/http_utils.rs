@@ -9,7 +9,7 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>>{
 	Ok(body)
 }
 
-pub fn parse_to_url(base_url: &str, args: HashMap<&str, &str>) -> Result<Url, Box<dyn Error>>{
+pub fn parse_to_url(base_url: &str, args: HashMap<String, String>) -> Result<Url, Box<dyn Error>>{
 	let mut url = Url::parse(&base_url)?;
 	url.query_pairs_mut().extend_pairs(args.iter());
 	Ok(url)
@@ -21,7 +21,7 @@ pub async fn get_http_result(url: &str) -> Result<String, Box<dyn Error>>{
 	Ok(result)
 }
 
-pub async fn get_http_result_with_args(base_url: &str, args: HashMap<&str, &str>) -> Result<String, Box<dyn Error>>{
+pub async fn get_http_result_with_args(base_url: &str, args: HashMap<String, String>) -> Result<String, Box<dyn Error>>{
 	let final_url = parse_to_url(base_url, args)?;
 	let result = get_http_result_internal(final_url).await?;
 	Ok(result)
