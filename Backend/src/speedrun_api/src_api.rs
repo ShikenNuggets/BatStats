@@ -5,7 +5,7 @@ use crate::speedrun_api::http_utils;
 use crate::speedrun_api::types::category::CategoryType;
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
-use crate::speedrun_api::types::variable::Variable;
+use crate::speedrun_api::types::variable::{Variable, VariablesResponse};
 use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
@@ -195,19 +195,20 @@ pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable>{
 	let body = match result{
 		Ok(body) => body,
 		Err(err) => {
-			println!("Failed to parse JSON: {}", err);
+			println!("Failed to parse JSON for variable HTTP result: {}", err);
 			return Vec::new();
 		}
 	};
 
-	let result: Result<Vec<Variable>, serde_json::Error> = serde_json::from_str(&body);
+	let result: Result<VariablesResponse, serde_json::Error> = serde_json::from_str(&body);
 	let map = match result {
 		Ok(parsed) => parsed,
 		Err(err) => {
-			println!("Failed to parse JSON: {}", err);
+			println!("Failed to parse JSON for game variables: {}", err);
+			println!("{}", body);
 			return Vec::new();
 		}
 	};
 
-	return map;
+	return map.data;
 }
