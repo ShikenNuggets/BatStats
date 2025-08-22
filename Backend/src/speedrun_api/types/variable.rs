@@ -40,7 +40,8 @@ pub struct Variable{
 	pub mandatory: bool,
 	pub user_defined: bool,
 	pub obsoletes: bool,
-	pub values: VariableValues
+	pub values: VariableValues,
+	pub is_subcategory: bool,
 	// TODO - links
 }
 
