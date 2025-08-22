@@ -1,4 +1,5 @@
 use core::panic;
+use std::hash::Hash;
 use std::{collections::HashMap};
 
 use crate::speedrun_api::http_utils;
@@ -121,6 +122,32 @@ pub async fn get_leaderboard(game: &str, category: &str, variables: HashMap<Stri
 	return Some(map.data);
 }
 
+pub fn get_subcategories_for_category(category_id: &str, variables: &Vec<Variable>) -> Vec<HashMap<String, String>>{
+	let mut result: Vec<HashMap<String, String>> = Vec::new();
+
+	for var in variables{
+		if !var.is_subcategory{
+			continue;
+		}
+
+		if !var.category.is_some() || !var.category.as_ref().unwrap().contains(category_id){
+			continue;
+		}
+
+		if var.id == "kn0k0d78"{
+			continue;
+		}
+
+		for val in &var.values.values{
+			let mut map = HashMap::new();
+			map.insert(var.id.clone(), val.0.clone());
+			result.push(map);
+		}
+	}
+
+	return result;
+}
+
 pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 	let mut result: Vec<Leaderboard> = Vec::new();
 
@@ -131,9 +158,20 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 			continue; // Ignore level categories
 		}
 
-		let response = get_leaderboard(game_id, &cat.id, HashMap::new()).await;
-		if response.is_some(){
-			result.push(response.unwrap());
+		let subcats = get_subcategories_for_category(&cat.id, &vars);
+
+		if subcats.is_empty(){
+			let response = get_leaderboard(game_id, &cat.id, HashMap::new()).await;
+			if response.is_some(){
+				result.push(response.unwrap());
+			}
+		}else{
+			for subcat_combo in subcats{
+				let response = get_leaderboard(game_id, &cat.id, subcat_combo).await;
+				if response.is_some(){
+					result.push(response.unwrap());
+				}
+			}
 		}
 	}
 
@@ -164,7 +202,7 @@ pub async fn get_user(user_id: &str) -> Option<types::user::UserResponse>{
 	return Some(map);
 }
 
-pub async fn get_variables(variable_id: &str) -> Option<Variable>{
+pub async fn get_variable(variable_id: &str) -> Option<Variable>{
 	let str = format!("{}variables/{}", API_BASE_URL, variable_id);
 	let result = http_utils::get_http_result(&str).await;
 
