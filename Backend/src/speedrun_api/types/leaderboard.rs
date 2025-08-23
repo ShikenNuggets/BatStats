@@ -7,7 +7,7 @@ use crate::speedrun_api::types::run;
 
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub enum TimingType{
 	#[serde(rename = "ingame")]
 	Ingame,
@@ -19,13 +19,13 @@ pub enum TimingType{
 	RealTimeNoLoads,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct LeaderboardRun{
 	pub place: i32,
 	pub run: run::Run
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Leaderboard{
 	pub weblink: String,

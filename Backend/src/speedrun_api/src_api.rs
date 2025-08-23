@@ -75,7 +75,6 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	match result {
 		Ok(parsed) => {
 			for var in parsed.data{
-				println!("{} - {}", var.id, var.name);
 				ret_val.push(var);
 			}
 		},
@@ -119,6 +118,7 @@ pub async fn get_leaderboard(game: &str, category: &str, variables: HashMap<Stri
 		Ok(parsed) => parsed,
 	 	Err(err) => {
 	 		println!("Failed to parse JSON: {}", err);
+			println!("{}", body);
 	 		return None;
 	 	}
 	};
