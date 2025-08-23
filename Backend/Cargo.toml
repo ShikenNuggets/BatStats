@@ -14,3 +14,5 @@ futures = "0.3.31"
 chrono = { version = "0.4.41", features = ["serde"] }
 reqwest = "0.12.22"
 url = "2.5.4"
+dashmap = "6.1.0"
+once_cell = "1.21.3"
