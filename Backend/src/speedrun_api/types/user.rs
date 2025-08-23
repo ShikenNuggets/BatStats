@@ -3,13 +3,15 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+use crate::speedrun_api::types::traits;
+
+#[derive(Clone, Deserialize)]
 pub struct UserNames{
 	pub international: String,
 	pub japanese: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct User{
 	pub id: String,
@@ -27,6 +29,12 @@ pub struct User{
 	// TODO - SpeedrunsLive
 	// TODO - Assets
 	// TODO - Links
+}
+
+impl traits::Cacheable for User{
+	fn key(&self) -> String {
+		return self.id.to_string();
+	}
 }
 
 #[derive(Deserialize)]

@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 
+use crate::speedrun_api::types::traits;
+
 #[derive(Deserialize)]
 pub struct RunVideo{
 	pub uri: String
@@ -15,7 +17,7 @@ pub struct RunVideos{
 	pub links: Vec<RunVideo>
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RunStatusType{
 	Verified,
@@ -23,7 +25,7 @@ pub enum RunStatusType{
 	Rejected
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RunStatus{
 	status: RunStatusType,
@@ -31,14 +33,14 @@ pub struct RunStatus{
 	verify_date: Option<DateTime<Utc>>
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum RunPlayerType{
 	User,
 	Guest
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct RunPlayer{
 	pub rel: RunPlayerType,
 	pub id: Option<String>,
@@ -47,7 +49,7 @@ pub struct RunPlayer{
 }
 
 // TODO - Parse times into ISO 8601 duration
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct RunTimes{
 	primary: String,
 	primary_t: i64,
@@ -59,20 +61,20 @@ pub struct RunTimes{
 	ingame_t: Option<i64>
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct RunSystem{
 	platform: Option<String>,
 	emulated: bool,
 	region: Option<String>
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct RunSplits{
 	rel: String,
 	uri: String
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Run{
 	pub id: String,
 	pub weblink: String,
@@ -88,4 +90,10 @@ pub struct Run{
 	pub system: RunSystem,
 	pub splits: Option<RunSplits>,
 	pub values: HashMap<String, String>
+}
+
+impl traits::Cacheable for Run{
+	fn key(&self) -> String {
+		return self.id.to_string();
+	}
 }

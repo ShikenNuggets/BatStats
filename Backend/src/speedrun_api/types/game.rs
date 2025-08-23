@@ -5,14 +5,16 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+use crate::speedrun_api::types::traits::{self, Cacheable};
+
+#[derive(Clone, Deserialize)]
 pub struct GameNames{
 	pub international: String,
 	pub japanese: Option<String>,
 	pub twitch: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct GameRuleset{
 	pub show_milliseconds: bool,
@@ -23,7 +25,7 @@ pub struct GameRuleset{
 	pub emulators_allowed: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Game{
 	pub id: String,
@@ -45,6 +47,12 @@ pub struct Game{
 	pub created: DateTime<Utc>,
 	// TODO - Assets
 	// TODO - Links
+}
+
+impl traits::Cacheable for Game{
+	fn key(&self) -> String {
+		return self.id.to_string();
+	}
 }
 
 #[derive(Deserialize)]

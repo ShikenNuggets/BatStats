@@ -4,25 +4,27 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+use crate::speedrun_api::types::traits;
+
+#[derive(Clone, Deserialize)]
 pub struct VariableScope{
 	#[serde(rename = "type")]
 	scope_type: String
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VariableValueFlags{
 	pub miscellaneous: Option<bool>
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VariableValue{
 	pub label: String,
 	pub rules: Option<String>,
 	pub flags: Option<VariableValueFlags>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct VariableValues{
 	pub _note: String,
 	pub choices: Option<HashMap<String, String>>,
@@ -30,7 +32,7 @@ pub struct VariableValues{
 	pub default: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Variable{
 	pub id: String,
@@ -43,6 +45,12 @@ pub struct Variable{
 	pub values: VariableValues,
 	pub is_subcategory: bool,
 	// TODO - links
+}
+
+impl traits::Cacheable for Variable{
+	fn key(&self) -> String {
+		return self.id.to_string();
+	}
 }
 
 #[derive(Deserialize)]
