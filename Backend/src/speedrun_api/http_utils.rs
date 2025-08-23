@@ -23,7 +23,7 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>>{
 					//	return Err("Too many retries due to rate limiting (HTTP 420)".into());
 					//}
 
-					let retry_duration = 1 + (1 * retries);
+					let retry_duration = std::cmp::min(5 + (5 * retries), 60);
 					println!("Received 420. Retrying in {} second(s)...", retry_duration);
 					retries += 1;
 					tokio::time::sleep(Duration::from_secs(retry_duration)).await;
