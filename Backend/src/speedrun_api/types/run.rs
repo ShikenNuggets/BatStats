@@ -52,13 +52,13 @@ pub struct RunPlayer{
 #[derive(Clone, Deserialize)]
 pub struct RunTimes{
 	primary: String,
-	primary_t: i64,
+	primary_t: f64,
 	realtime: Option<String>,
-	realtime_t: Option<i64>,
+	realtime_t: Option<f64>,
 	realtime_noloads: Option<String>,
-	realtime_noloads_t: Option<i64>,
+	realtime_noloads_t: Option<f64>,
 	ingame: Option<String>,
-	ingame_t: Option<i64>
+	ingame_t: Option<f64>
 }
 
 #[derive(Clone, Deserialize)]
