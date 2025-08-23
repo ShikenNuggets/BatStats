@@ -49,12 +49,57 @@ async fn get_player_name(player : &RunPlayer) -> Option<String>{
         return None;
     }
 
-    return Some(user.unwrap().data.names.international);
+    return Some(user.unwrap().names.international);
+}
+
+async fn print_world_records_for_game(game_id: &str){
+	let leaderboards = src_api::get_all_fullgame_leaderboards(game_id).await;
+	println!("Processing {} leaderboards...", leaderboards.len());
+
+	let mut world_records: HashMap<String, i64> = HashMap::new();
+	for lb in leaderboards{
+		let wr_run = lb.runs.first();
+		if !wr_run.is_some(){
+			continue;
+		}
+
+		let player = &wr_run.unwrap().run.players.first();
+		if !player.is_some(){
+			continue;
+		}
+
+		let player_name = get_player_name(player.unwrap()).await;
+		if player_name.is_none(){
+			continue;
+		}
+
+		let player_name = player_name.unwrap();
+
+		if let Some(value) = world_records.get_mut(&player_name){
+			*value += 1;
+		}else if !world_records.contains_key(&player_name){
+			world_records.insert(player_name, 1);
+		}
+	}
+
+	println!("{:?}", world_records);
 }
 
 #[tokio::main]
 async fn main(){
-    let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
+	println!("Asylum: ");
+	print_world_records_for_game(ASYLUM_GAME_ID).await;
+
+	println!("City: ");
+	print_world_records_for_game(CITY_GAME_ID).await;
+
+	println!("Origins: ");
+	print_world_records_for_game(ORIGINS_GAME_ID).await;
+
+	println!("Knight: ");
+	print_world_records_for_game(KNIGHT_GAME_ID).await;
+
+	/* let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
     println!("Processing {} leaderboards...", asylum_leaderboards.len());
 
     let mut world_records: HashMap<String, i64> = HashMap::new();
@@ -83,7 +128,7 @@ async fn main(){
         }
     }
 
-    println!("{:?}", world_records);
+    println!("{:?}", world_records); */
 
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())

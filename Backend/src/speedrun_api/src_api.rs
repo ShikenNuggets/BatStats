@@ -1,13 +1,11 @@
-use core::panic;
-use std::hash::Hash;
 use std::{collections::HashMap};
 
-use crate::speedrun_api::{cache, http_utils, src_cache};
+use crate::speedrun_api::{http_utils, src_cache};
 use crate::speedrun_api::types::category::CategoryType;
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
 use crate::speedrun_api::types::variable::{Variable, VariablesResponse};
-use crate::speedrun_api::types::{self, category, user};
+use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
 

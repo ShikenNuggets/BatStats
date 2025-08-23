@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-use crate::speedrun_api::types::traits::{self, Cacheable};
+use crate::speedrun_api::types::traits::{self};
 
 #[derive(Clone, Deserialize)]
 pub struct GameNames{
