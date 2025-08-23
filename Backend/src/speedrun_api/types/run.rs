@@ -51,14 +51,14 @@ pub struct RunPlayer{
 // TODO - Parse times into ISO 8601 duration
 #[derive(Clone, Deserialize)]
 pub struct RunTimes{
-	primary: String,
-	primary_t: f64,
-	realtime: Option<String>,
-	realtime_t: Option<f64>,
-	realtime_noloads: Option<String>,
-	realtime_noloads_t: Option<f64>,
-	ingame: Option<String>,
-	ingame_t: Option<f64>
+	pub primary: String,
+	pub primary_t: f64,
+	pub realtime: Option<String>,
+	pub realtime_t: Option<f64>,
+	pub realtime_noloads: Option<String>,
+	pub realtime_noloads_t: Option<f64>,
+	pub ingame: Option<String>,
+	pub ingame_t: Option<f64>
 }
 
 #[derive(Clone, Deserialize)]
