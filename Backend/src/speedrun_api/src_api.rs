@@ -2,12 +2,12 @@ use core::panic;
 use std::hash::Hash;
 use std::{collections::HashMap};
 
-use crate::speedrun_api::http_utils;
+use crate::speedrun_api::{cache, http_utils, src_cache};
 use crate::speedrun_api::types::category::CategoryType;
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
 use crate::speedrun_api::types::variable::{Variable, VariablesResponse};
-use crate::speedrun_api::types::{self, category};
+use crate::speedrun_api::types::{self, category, user};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
 
@@ -30,6 +30,11 @@ pub async fn get_game_id(game_name: &str){
 }
 
 pub async fn get_game(game_id: &str) -> Option<Game>{
+	let cached_game = src_cache::GAME_CACHE.get(game_id);
+	if cached_game.is_some(){
+		return cached_game;
+	}
+
 	let str = format!("{}games/{}", API_BASE_URL, game_id);
 	let result = http_utils::get_http_result(&str).await;
 
@@ -50,6 +55,7 @@ pub async fn get_game(game_id: &str) -> Option<Game>{
 		}
 	};
 
+	src_cache::GAME_CACHE.insert(&map.data);
 	return Some(map.data);
 }
 
@@ -178,7 +184,12 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 	return result;
 }
 
-pub async fn get_user(user_id: &str) -> Option<types::user::UserResponse>{
+pub async fn get_user(user_id: &str) -> Option<types::user::User>{
+	let cached_user = src_cache::USER_CACHE.get(user_id);
+	if cached_user.is_some(){
+		return cached_user;
+	}
+
 	let str = format!("{}users/{}", API_BASE_URL, user_id);
 	let result = http_utils::get_http_result(&str).await;
 
@@ -199,10 +210,16 @@ pub async fn get_user(user_id: &str) -> Option<types::user::UserResponse>{
 		}
 	};
 
-	return Some(map);
+	src_cache::USER_CACHE.insert(&map.data);
+	return Some(map.data);
 }
 
 pub async fn get_variable(variable_id: &str) -> Option<Variable>{
+	let cached_var = src_cache::VARIABLE_CACHE.get(variable_id);
+	if cached_var.is_some(){
+		return cached_var;
+	}
+
 	let str = format!("{}variables/{}", API_BASE_URL, variable_id);
 	let result = http_utils::get_http_result(&str).await;
 
@@ -223,6 +240,7 @@ pub async fn get_variable(variable_id: &str) -> Option<Variable>{
 		}
 	};
 
+	src_cache::VARIABLE_CACHE.insert(&map.data);
 	return Some(map.data);
 }
 
