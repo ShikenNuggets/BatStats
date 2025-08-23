@@ -1,8 +1,8 @@
 use dashmap::DashSet;
 use once_cell::sync::Lazy;
-use reqwest;
+use reqwest::{self, StatusCode};
 use url::Url;
-use std::{collections::{HashMap}, error::Error};
+use std::{collections::HashMap, error::Error, time::Duration};
 
 static URL_REQUESTS: Lazy<DashSet<Url>> = Lazy::new(DashSet::new);
 
@@ -13,10 +13,30 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>>{
 		URL_REQUESTS.insert(url.clone());
 	}
 
-	let response = reqwest::get(url).await?;
-	let response = response.error_for_status()?;
-	let body = response.text().await?;
-	Ok(body)
+	let mut retries = 0;
+	loop{
+		let response = reqwest::get(url.clone()).await;
+		match response{
+			Ok(resp) => {
+				if resp.status() == StatusCode::from_u16(420).unwrap(){
+					//if retries >= 5{
+					//	return Err("Too many retries due to rate limiting (HTTP 420)".into());
+					//}
+
+					let retry_duration = 1 + (1 * retries);
+					println!("Received 420. Retrying in {} second(s)...", retry_duration);
+					retries += 1;
+					tokio::time::sleep(Duration::from_secs(retry_duration)).await;
+					continue;
+				}
+
+				let response = resp.error_for_status()?;
+				let body = response.text().await?;
+				return Ok(body);
+			}
+			Err(e) => return Err(e.into()),
+		}
+	}
 }
 
 pub fn parse_to_url(base_url: &str, args: HashMap<String, String>) -> Result<Url, Box<dyn Error>>{
