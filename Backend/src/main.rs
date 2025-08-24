@@ -17,12 +17,12 @@ use serde::{Serialize};
 use tower_http::cors::CorsLayer;
 use tokio::net::TcpListener;
 
-use std::{collections::HashMap};
+use std::{collections::{HashMap, HashSet}, hash::Hash};
 
 
 use speedrun_api::src_api;
 
-use crate::speedrun_api::types::{run::{RunPlayer, RunPlayerType}};
+use crate::speedrun_api::types::{leaderboard::{self, Leaderboard}, run::{RunPlayer, RunPlayerType}};
 
 #[derive(Serialize)]
 struct RandomNumber{
@@ -52,10 +52,15 @@ async fn get_player_name(player : &RunPlayer) -> Option<String>{
     return Some(user.unwrap().names.international);
 }
 
-async fn print_world_records_for_game(game_id: &str){
-	let leaderboards = src_api::get_all_fullgame_leaderboards(game_id).await;
-	println!("Processing {} leaderboards...", leaderboards.len());
+fn get_player_id_or_guest_name(player : &RunPlayer) -> Option<String>{
+    if let RunPlayerType::Guest = player.rel{
+        return player.name.clone();
+    }
 
+    return player.id.clone();
+}
+
+async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i64>{
 	let mut world_records: HashMap<String, i64> = HashMap::new();
 	for lb in leaderboards{
 		let wr_run = lb.runs.first();
@@ -82,22 +87,132 @@ async fn print_world_records_for_game(game_id: &str){
 		}
 	}
 
-	println!("{:?}", world_records);
+    return world_records;
+}
+
+async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String>{
+    let mut runners: HashSet<String> = HashSet::new();
+
+    for leaderboard in leaderboards{
+        for run in &leaderboard.runs{
+            for player in &run.run.players{
+                let player_name = get_player_id_or_guest_name(&player);
+                if player_name.is_none(){
+                    continue;
+                }
+                runners.insert(player_name.unwrap());
+            }
+        }
+    }
+
+    return runners;
+}
+
+fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64>{
+    if leaderboard.runs.is_empty(){
+        return None;
+    }
+
+    return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
+}
+
+fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
+    if leaderboard.runs.is_empty(){
+        return None;
+    }
+
+    return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+}
+
+async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
+    let mut run_times: HashMap<String, f64> = HashMap::new();
+
+    let fastest_time = get_fastest_time(&leaderboard);
+    let slowest_time = get_slowest_time(&leaderboard);
+
+    if fastest_time.is_none() || slowest_time.is_none(){
+        return run_times;
+    }
+    
+    for run in &leaderboard.runs{
+        let runner_name = get_player_id_or_guest_name(run.run.players.first().unwrap());
+        if runner_name.is_none(){
+            continue;
+        }
+
+        run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
+    }
+
+    return run_times;
+}
+
+async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64>{
+    let mut runner_times: HashMap<String, f64> = HashMap::new();
+
+    println!("Getting all runners...");
+    let all_runners = get_all_runners(leaderboards).await;
+    for runner in &all_runners{
+        runner_times.insert(runner.to_string(), 0.0);
+    }
+
+    println!("Processing leaderboards...");
+    for leaderboard in leaderboards{
+        let fastest_time = get_fastest_time(&leaderboard);
+        let slowest_time = get_slowest_time(&leaderboard);
+        let times = get_runner_times_map(leaderboard).await;
+
+        if fastest_time.is_none() || slowest_time.is_none() || times.is_empty(){
+            println!("Something went from for leaderboard of category {}", leaderboard.category);
+            continue;
+        }
+
+        let fastest_time = fastest_time.unwrap();
+        let slowest_time = slowest_time.unwrap() - fastest_time;
+
+        for runner in &all_runners{
+            if times.contains_key(runner){
+                runner_times.insert(runner.to_string(), runner_times[runner] + times[runner]);
+            }else{
+                runner_times.insert(runner.to_string(), runner_times[runner] + slowest_time);
+            }
+        }
+    }
+
+    return runner_times;
 }
 
 #[tokio::main]
 async fn main(){
-	println!("Asylum: ");
-	print_world_records_for_game(ASYLUM_GAME_ID).await;
+    let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
+    let city_leaderboards = src_api::get_all_fullgame_leaderboards(CITY_GAME_ID).await;
+    let origins_leaderboards = src_api::get_all_fullgame_leaderboards(ORIGINS_GAME_ID).await;
+    let knight_leaderboards = src_api::get_all_fullgame_leaderboards(KNIGHT_GAME_ID).await;
+    let multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
+    let catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
 
-	println!("City: ");
-	print_world_records_for_game(CITY_GAME_ID).await;
+    let mut all_main_boards: Vec<Leaderboard> = Vec::new();
+    all_main_boards.extend(asylum_leaderboards.clone());
+    all_main_boards.extend(city_leaderboards.clone());
+    all_main_boards.extend(origins_leaderboards.clone());
+    all_main_boards.extend(knight_leaderboards.clone());
 
-	println!("Origins: ");
-	print_world_records_for_game(ORIGINS_GAME_ID).await;
+    //let wrs = get_world_records(&all_main_boards).await;
+    //println!("World Records: {:?}", wrs);
 
-	println!("Knight: ");
-	print_world_records_for_game(KNIGHT_GAME_ID).await;
+    let runner_times = get_total_runner_times(&all_main_boards).await;
+    println!("All Runner Times: {:?}", runner_times);
+
+	//println!("Asylum: ");
+	//print_world_records_for_game(ASYLUM_GAME_ID).await;
+
+	//println!("City: ");
+	//print_world_records_for_game(CITY_GAME_ID).await;
+
+	//println!("Origins: ");
+	//print_world_records_for_game(ORIGINS_GAME_ID).await;
+
+	//println!("Knight: ");
+	//print_world_records_for_game(KNIGHT_GAME_ID).await;
 
 	/* let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
     println!("Processing {} leaderboards...", asylum_leaderboards.len());
