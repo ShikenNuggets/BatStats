@@ -124,6 +124,14 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
 	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
 }
 
+fn get_last_place(leaderboard: &Leaderboard) -> i64{
+	if leaderboard.runs.is_empty(){
+		return 0;
+	}
+	
+	return leaderboard.runs.last().unwrap().place.into();
+}
+
 async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
 	let mut run_times: HashMap<String, f64> = HashMap::new();
 
@@ -144,6 +152,27 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
 	}
 
 	return run_times;
+}
+
+async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i64>{
+	let mut run_ranks: HashMap<String, i64> = HashMap::new();
+
+	let last_place = get_last_place(leaderboard);
+	if last_place <= 0{
+		return run_ranks;
+	}
+	
+	for run in &leaderboard.runs{
+		let runner_name = get_player_name(run.run.players.first().unwrap()).await;
+		if runner_name.is_none(){
+			continue;
+		}
+
+		let rank_as_i64: i64 = run.place.into();
+		run_ranks.insert(runner_name.unwrap(), rank_as_i64 - 1);
+	}
+
+	return run_ranks;
 }
 
 async fn get_variable_value_name(var: &Variable, value_id: &str) -> Option<String>{
@@ -197,13 +226,11 @@ async fn get_leaderboard_name(leaderboard: &Leaderboard) -> String{
 async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64>{
 	let mut runner_times: HashMap<String, f64> = HashMap::new();
 
-	println!("Getting all runners...");
 	let all_runners = get_all_runners(leaderboards).await;
 	for runner in &all_runners{
 		runner_times.insert(runner.to_string(), 0.0);
 	}
 
-	println!("Processing leaderboards...");
 	for leaderboard in leaderboards{
 		let api_category = src_api::get_category(&leaderboard.category).await;
 		if api_category.is_none() || api_category.unwrap().miscellaneous{
@@ -215,7 +242,7 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>) -> HashMap<Stri
 		let times = get_runner_times_map(leaderboard).await;
 
 		if fastest_time.is_none() || slowest_time.is_none() || times.is_empty(){
-			println!("Something went from for leaderboard of category {}", leaderboard.category);
+			println!("Something went wrong for leaderboard of category {}", leaderboard.category);
 			continue;
 		}
 
@@ -223,28 +250,56 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>) -> HashMap<Stri
 		let slowest_time = slowest_time.unwrap() - fastest_time;
 
 		for runner in &all_runners{
+			let mut time_to_add = slowest_time;
 			if times.contains_key(runner){
-				let time_to_add = times[runner] - fastest_time;
-				if runner == "ShikenNuggets"{
-					println!("Adding {} to Shiken from {}", time_to_add, get_leaderboard_name(leaderboard).await);
-				}
-
-				runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
-			}else{
-				if runner == "ShikenNuggets"{
-					println!("Adding slowest time {} to Shiken from {}", slowest_time, get_leaderboard_name(leaderboard).await);
-				}
-
-				runner_times.insert(runner.to_string(), runner_times[runner] + slowest_time);
+				time_to_add = times[runner] - fastest_time;
 			}
+
+			runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
 		}
 	}
 
 	return runner_times;
 }
 
+async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i64>{
+	let mut runner_ranks: HashMap<String, i64> = HashMap::new();
+
+	let all_runners = get_all_runners(leaderboards).await;
+	for runner in &all_runners{
+		runner_ranks.insert(runner.to_string(), 0);
+	}
+
+	for leaderboard in leaderboards{
+		let api_category = src_api::get_category(&leaderboard.category).await;
+		if api_category.is_none() || api_category.unwrap().miscellaneous{
+			continue;
+		}
+
+		let last_place = get_last_place(leaderboard);
+		let ranks = get_runner_ranks_map(leaderboard).await;
+
+		if last_place <= 0 || ranks.is_empty(){
+			println!("Something went wrong for leaderboard of category {}", leaderboard.category);
+			continue;
+		}
+
+		for runner in &all_runners{
+			let mut rank_to_add = last_place;
+			if ranks.contains_key(runner){
+				rank_to_add = ranks[runner];
+			}
+
+			runner_ranks.insert(runner.to_string(), runner_ranks[runner] + rank_to_add);
+		}
+	}
+
+	return runner_ranks;
+}
+
 #[tokio::main]
 async fn main(){
+	println!("Getting initial leaderboard data...");
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(ASYLUM_GAME_ID).await;
 	let city_leaderboards = src_api::get_all_fullgame_leaderboards(CITY_GAME_ID).await;
 	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(ORIGINS_GAME_ID).await;
@@ -258,11 +313,17 @@ async fn main(){
 	all_main_boards.extend(origins_leaderboards.clone());
 	all_main_boards.extend(knight_leaderboards.clone());
 
+	println!("Processing world records...");
 	let wrs = get_world_records(&all_main_boards).await;
 	println!("World Records: {:?}", wrs);
 
+	println!("Processing fastest runners...");
 	let runner_times = get_total_runner_times(&all_main_boards).await;
 	println!("All Runner Times: {:?}", runner_times);
+
+	println!("Processing highest ranking runners...");
+	let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
+	println!("All Runner Ranks: {:?}", runner_ranks);
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
