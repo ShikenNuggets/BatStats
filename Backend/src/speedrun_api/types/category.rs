@@ -50,5 +50,10 @@ impl traits::Cacheable for Category{
 
 #[derive(Deserialize)]
 pub struct CategoryResponse{
+	pub data: Category
+}
+
+#[derive(Deserialize)]
+pub struct CategoriesResponse{
 	pub data: Vec<Category>
 }

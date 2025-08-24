@@ -1,7 +1,7 @@
 use std::{collections::HashMap};
 
 use crate::speedrun_api::{http_utils, src_cache};
-use crate::speedrun_api::types::category::CategoryType;
+use crate::speedrun_api::types::category::{Category, CategoryType};
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
 use crate::speedrun_api::types::variable::{Variable, VariablesResponse};
@@ -57,6 +57,36 @@ pub async fn get_game(game_id: &str) -> Option<Game>{
 	return Some(map.data);
 }
 
+pub async fn get_category(category_id: &str) -> Option<Category>{
+	let cached_category = src_cache::CATEGORY_CACHE.get(category_id);
+	if cached_category.is_some(){
+		return cached_category;
+	}
+
+	let str = format!("{}categories/{}", API_BASE_URL, category_id);
+	let result = http_utils::get_http_result(&str).await;
+
+	let body = match  result {
+		Ok(body) => body,
+		Err(err) => {
+			println!("Failed to parse JSON: {}", err);
+			return None;
+		}
+	};
+
+	let result: Result<types::category::CategoryResponse, serde_json::Error> = serde_json::from_str(&body);
+	let map = match result {
+		Ok(parsed) => parsed,
+		Err(err) => {
+			println!("Failed to parse JSON: {}", err);
+			return None;
+		}
+	};
+
+	src_cache::CATEGORY_CACHE.insert(&map.data);
+	return Some(map.data);
+}
+
 pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	let mut ret_val: Vec<category::Category> = Vec::new();
 
@@ -71,7 +101,7 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 		}
 	};
 
-	let result: Result<types::category::CategoryResponse, serde_json::Error> = serde_json::from_str(&body);
+	let result: Result<types::category::CategoriesResponse, serde_json::Error> = serde_json::from_str(&body);
 	match result {
 		Ok(parsed) => {
 			for var in parsed.data{
