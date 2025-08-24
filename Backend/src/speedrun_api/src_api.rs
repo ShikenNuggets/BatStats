@@ -49,6 +49,7 @@ pub async fn get_game(game_id: &str) -> Option<Game>{
 		Ok(parsed) => parsed,
 		Err(err) => {
 			println!("Failed to parse JSON: {}", err);
+			println!("{}", body);
 			return None;
 		}
 	};
@@ -79,6 +80,7 @@ pub async fn get_category(category_id: &str) -> Option<Category>{
 		Ok(parsed) => parsed,
 		Err(err) => {
 			println!("Failed to parse JSON: {}", err);
+			println!("{}", body);
 			return None;
 		}
 	};
@@ -264,6 +266,7 @@ pub async fn get_variable(variable_id: &str) -> Option<Variable>{
 		Ok(parsed) => parsed,
 		Err(err) => {
 			println!("Failed to parse JSON: {}", err);
+			println!("{}", body);
 			return None;
 		}
 	};
