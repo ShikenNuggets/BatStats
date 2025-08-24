@@ -44,7 +44,7 @@ pub struct Game{
 	pub developers: Vec<String>,
 	pub publishers: Vec<String>,
 	pub moderators: HashMap<String, String>,
-	pub created: DateTime<Utc>,
+	pub created: Option<DateTime<Utc>>,
 	// TODO - Assets
 	// TODO - Links
 }
