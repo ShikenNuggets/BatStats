@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::speedrun_api::{http_utils, src_cache};
+use crate::speedrun_api::{http_utils, src_api, src_cache};
 use crate::speedrun_api::types::category::{Category, CategoryType};
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
@@ -127,12 +127,12 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	//println!("{:?}", map);
 }
 
-pub async fn get_leaderboard(game: &str, category: &str, variables: HashMap<String, String>) -> Option<types::leaderboard::Leaderboard>{
+pub async fn get_leaderboard(game: &str, category: &str, variables: &HashMap<String, String>) -> Option<types::leaderboard::Leaderboard>{
 	let str = format!("{}leaderboards/{}/category/{}", API_BASE_URL, game, category);
 
 	let mut args: HashMap<String, String> = HashMap::new();
 	for var in variables{
-		args.insert(format!("var-{}", var.0), var.1);
+		args.insert(format!("var-{}", var.0), var.1.clone());
 	}
 
 	let result = http_utils::get_http_result_with_args(&str, args).await;
@@ -174,10 +174,14 @@ pub fn get_subcategories_for_category(category_id: &str, variables: &Vec<Variabl
 			continue;
 		}
 
+		println!("{} = {}", var.name, var.id);
+
 		for val in &var.values.values{
 			let mut map = HashMap::new();
 			map.insert(var.id.clone(), val.0.clone());
 			result.push(map);
+
+			println!("	{} = {}", val.1.label, val.0);
 		}
 	}
 
@@ -194,15 +198,19 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 			continue; // Ignore level categories
 		}
 
+		let game = src_api::get_game(game_id).await;
+		println!("{} {} = {}", game.unwrap().names.international, cat.id, cat.name);
+
 		let subcats = get_subcategories_for_category(&cat.id, &vars);
 
 		if subcats.is_empty(){
-			let response = get_leaderboard(game_id, &cat.id, HashMap::new()).await;
+			let vars = HashMap::new();
+			let response = get_leaderboard(game_id, &cat.id, &vars).await;
 			if response.is_some(){
 				result.push(response.unwrap());
 			}
 		}else{
-			for subcat_combo in subcats{
+			for subcat_combo in &subcats{
 				let response = get_leaderboard(game_id, &cat.id, subcat_combo).await;
 				if response.is_some(){
 					result.push(response.unwrap());
