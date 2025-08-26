@@ -420,7 +420,7 @@ async fn get_all_any_percent_times() -> HashMap<String, f64>{
 	let origins_any_times = get_best_origins_any_percent_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
-	return combine_times(&asylum_times, &city_times, &origins_times, &knight_times).await;
+	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
 }
 
 #[tokio::main]
