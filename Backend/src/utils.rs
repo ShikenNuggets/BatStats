@@ -53,14 +53,6 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
 	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
 }
 
-fn get_last_place(leaderboard: &Leaderboard) -> i64{
-	if leaderboard.runs.is_empty(){
-		return 0;
-	}
-	
-	return leaderboard.runs.last().unwrap().place.into();
-}
-
 async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
 	let mut run_times: HashMap<String, f64> = HashMap::new();
 

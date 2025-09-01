@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{speedrun_api::{src_api, types::leaderboard::Leaderboard}, utils};
+use crate::{speedrun_api::{types::leaderboard::Leaderboard}, utils};
 
 pub const GAME_ID: &str = "4d7p4rd7";
 

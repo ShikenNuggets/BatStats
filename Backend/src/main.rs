@@ -3,7 +3,6 @@ mod city;
 mod origins;
 mod knight;
 
-mod speedrun_utils;
 mod speedrun_api;
 mod utils;
 
@@ -24,7 +23,7 @@ use std::{collections::{HashMap, HashSet}};
 
 use speedrun_api::src_api;
 
-use crate::speedrun_api::{types::{leaderboard::{Leaderboard}, run::{RunPlayer, RunPlayerType}, variable::Variable}};
+use crate::speedrun_api::{types::{leaderboard::{Leaderboard}, run::{RunPlayer, RunPlayerType}}};
 
 #[derive(Serialize)]
 struct RandomNumber{

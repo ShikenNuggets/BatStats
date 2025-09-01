@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use once_cell::sync::Lazy;
 
 use crate::speedrun_api::{cache::Cache, types::{category::Category, game::Game, run::Run, user::User, variable::Variable}};
