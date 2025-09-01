@@ -8,6 +8,16 @@ pub struct RawMasteryData{
 	pub mastery_percents: HashMap<String, f64>
 }
 
+pub fn calculate_mastery(wr: f64, average: f64, run_time: f64) -> f64{
+	if run_time <= wr{
+		return 1.0;
+	}else if run_time >= average{
+		return 0.0;
+	}
+
+	return (average - run_time) / (average - wr);
+}
+
 pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData{
 	let mut raw_mastery: RawMasteryData = Default::default();
 	raw_mastery.num_players = leaderboard.runs.len() as i64;
@@ -18,12 +28,20 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData{
 		return raw_mastery;
 	}
 	let fastest_time = fastest_time.unwrap();
-	// Compare all runners to fastest
-	// WR = 100%
-	// WR * 2 = 0%
+
+	let average_time = utils::get_adjusted_average_time(leaderboard);
+	if average_time.is_none(){
+		println!("Leaderboard's average time was invalid");
+		return raw_mastery;
+	}
+	let average_time = average_time.unwrap();
 
 	for run in &leaderboard.runs{
-		let mastery = (run.run.times.primary_t - fastest_time) / fastest_time;
+		let mastery = calculate_mastery(fastest_time, average_time, run.run.times.primary_t);
+		if mastery <= 0.0{
+			continue;
+		}
+
 		let runner_name = utils::get_player_name(&run.run.players[0]).await;
 		if runner_name.is_none(){
 			println!("Run {} had no valid player name", run.run.id);
@@ -53,7 +71,12 @@ pub async fn get_mastery_ranks_for_game(game_id: &str) -> HashMap<String, f64>{
 		let percent_relevance = (raw_data.num_players as f64) / (total_players as f64);
 		
 		for entry in raw_data.mastery_percents{
-			overall_mastery.insert(entry.0, entry.1 * percent_relevance);
+			if overall_mastery.contains_key(&entry.0){
+				let new_mastery = overall_mastery[&entry.0] + (entry.1 * percent_relevance);
+				overall_mastery.insert(entry.0, new_mastery);
+			}else{
+				overall_mastery.insert(entry.0, entry.1 * percent_relevance);
+			}
 		}
 	}
 
