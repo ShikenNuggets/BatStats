@@ -1,30 +1,14 @@
 mod asylum;
 mod city;
+mod origins;
+
 mod speedrun_utils;
 mod speedrun_api;
 mod utils;
 
-const ORIGINS_GAME_ID: &str = "4pdvp4dw";
 const KNIGHT_GAME_ID: &str = "4d7p4rd7";
 const MULTI_GAME_ID: &str = "nd2eyoed";
 const CATEXT_GAME_ID: &str = "m1mnnv3d";
-
-// -------------------------------------------------- //
-// ------------------ Origins ----------------------- //
-// -------------------------------------------------- //
-const ORIGINS_ANY_CAT_ID: &str = "w5dwog2g";
-const ORIGINS_GLITCHLESS_CAT_ID: &str = "rklez0q2";
-const ORIGINS_100_CAT_ID: &str = "7wk69ek1";
-
-const ORIGINS_ANY_DIFFICULTY_VAR_ID: &str = "38dq40n0";
-	const ORIGINS_ANY_EASY_VAL_ID: &str = "p12vj4dq";
-	const ORIGINS_ANY_NORMAL_VAL_ID: &str = "0q54ry7l";
-	const ORIGINS_ANY_HARD_VAL_ID: &str = "81pyk6v1";
-
-const ORIGINS_GLITCHLESS_DIFFICULTY_VAR_ID: &str = "gnx7vxlv";
-	const ORIGINS_GLITCHLESS_EASY_VAL_ID: &str = "81w70ovq";
-	const ORIGINS_GLITCHLESS_NORMAL_VAL_ID: &str = "zqojvox1";
-	const ORIGINS_GLITCHLESS_HARD_VAL_ID: &str = "013x67x1";
 
 // -------------------------------------------------- //
 // ------------------- Knight ----------------------- //
@@ -365,40 +349,6 @@ async fn combine_times(asylum_times: &HashMap<String, f64>, city_times: &HashMap
 	return final_times;
 }
 
-async fn get_best_origins_any_percent_times() -> HashMap<String, f64>{
-	let any_easy = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_ANY_CAT_ID, ORIGINS_ANY_DIFFICULTY_VAR_ID, ORIGINS_ANY_EASY_VAL_ID).await;
-	let any_normal = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_ANY_CAT_ID, ORIGINS_ANY_DIFFICULTY_VAR_ID, ORIGINS_ANY_NORMAL_VAL_ID).await;
-	let any_hard = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_ANY_CAT_ID, ORIGINS_ANY_DIFFICULTY_VAR_ID, ORIGINS_ANY_HARD_VAL_ID).await;
-
-	let glitchless_easy = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_GLITCHLESS_CAT_ID, ORIGINS_GLITCHLESS_DIFFICULTY_VAR_ID, ORIGINS_GLITCHLESS_EASY_VAL_ID).await;
-	let glitchless_normal = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_GLITCHLESS_CAT_ID, ORIGINS_GLITCHLESS_DIFFICULTY_VAR_ID, ORIGINS_GLITCHLESS_NORMAL_VAL_ID).await;
-	let glitchless_hard = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_GLITCHLESS_CAT_ID, ORIGINS_GLITCHLESS_DIFFICULTY_VAR_ID, ORIGINS_GLITCHLESS_HARD_VAL_ID).await;
-
-	let vars = HashMap::new();
-	let hundo = src_api::get_leaderboard(ORIGINS_GAME_ID, ORIGINS_100_CAT_ID, &vars).await;
-
-	if any_easy.is_none() || any_normal.is_none() || any_hard.is_none()
-		|| glitchless_easy.is_none() || glitchless_normal.is_none() || glitchless_hard.is_none()
-		|| hundo.is_none()
-	{
-		println!("Failed to get all Any% boards for Origins");
-		return HashMap::new();
-	}
-
-	let mut all_boards: Vec<Leaderboard> = Vec::new();
-	all_boards.push(any_easy.unwrap());
-	all_boards.push(any_normal.unwrap());
-	all_boards.push(any_hard.unwrap());
-
-	all_boards.push(glitchless_easy.unwrap());
-	all_boards.push(glitchless_normal.unwrap());
-	all_boards.push(glitchless_hard.unwrap());
-
-	all_boards.push(hundo.unwrap());
-
-	return combine_times_best_only(&all_boards).await;
-}
-
 async fn get_best_knight_any_percent_times() -> HashMap<String, f64>{
 	let any_easy = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_ANY_CAT_ID, KNIGHT_ANY_DIFFICULTY_VAR_ID, KNIGHT_ANY_EASY_VAL_ID).await;
 	let any_normal = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_ANY_CAT_ID, KNIGHT_ANY_DIFFICULTY_VAR_ID, KNIGHT_ANY_NORMAL_VAL_ID).await;
@@ -436,7 +386,7 @@ async fn get_best_knight_any_percent_times() -> HashMap<String, f64>{
 async fn get_all_any_percent_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_any_percent_times().await;
 	let city_any_times = city::get_best_any_percent_times().await;
-	let origins_any_times = get_best_origins_any_percent_times().await;
+	let origins_any_times = origins::get_best_any_percent_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
@@ -461,7 +411,7 @@ async fn get_all_any_percent_times() -> HashMap<String, f64>{
 async fn get_all_glitchless_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_glitchless_times().await;
 	let city_any_times = city::get_best_glitchless_times().await;
-	let origins_any_times = get_best_origins_any_percent_times().await;
+	let origins_any_times = origins::get_best_glitchless_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
@@ -486,7 +436,7 @@ async fn get_all_glitchless_times() -> HashMap<String, f64>{
 async fn get_all_hundo_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_hundo_times().await;
 	let city_any_times = city::get_best_hundo_times().await;
-	let origins_any_times = get_best_origins_any_percent_times().await;
+	let origins_any_times = origins::get_best_glitchless_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
@@ -513,7 +463,7 @@ async fn main(){
 	println!("Getting initial leaderboard data...");
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
 	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
-	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(ORIGINS_GAME_ID).await;
+	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(origins::GAME_ID).await;
 	let knight_leaderboards = src_api::get_all_fullgame_leaderboards(KNIGHT_GAME_ID).await;
 	let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
 	let _catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
