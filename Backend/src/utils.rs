@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::speedrun_api::{src_api, types::{leaderboard::Leaderboard, run::{RunPlayer, RunPlayerType}}};
 
-async fn get_player_name(player : &RunPlayer) -> Option<String>{
+pub async fn get_player_name(player : &RunPlayer) -> Option<String>{
 	if let RunPlayerType::Guest = player.rel{
 		return player.name.clone();
 	}
@@ -37,7 +37,7 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String>{
 	return runners;
 }
 
-fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64>{
+pub fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64>{
 	if leaderboard.runs.is_empty(){
 		return None;
 	}
