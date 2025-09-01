@@ -316,10 +316,6 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_w
 			continue;
 		}
 
-		let api_category = api_category.unwrap();
-
-		println!("Getting total runner times for {}", api_category.name);
-
 		let fastest_time = get_fastest_time(&leaderboard);
 		let slowest_time = get_slowest_time(&leaderboard);
 		let times = get_runner_times_map(leaderboard).await;
@@ -335,7 +331,6 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_w
 		for runner in &all_runners{
 			let mut time_to_add = slowest_time;
 			if times.contains_key(runner){
-				println!("Times: {} = {}", runner, times[runner]);
 				time_to_add = times[runner];
 				if subtract_from_wr{
 					time_to_add -= fastest_time;
@@ -394,16 +389,10 @@ async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap<Str
 	let mut combined_times: HashMap<String, f64> = HashMap::new();
 
 	for leaderboard in leaderboards{
-		let mut lb_temp = Vec::new();
-		lb_temp.push(leaderboard);
-		let times = get_total_runner_times(leaderboards, false).await;
+		let mut lb_temp: Vec<Leaderboard> = Vec::new();
+		lb_temp.push(leaderboard.clone());
+		let times = get_total_runner_times(&lb_temp, false).await;
 		for time in times{
-			if !combined_times.contains_key(&time.0){
-				println!("{} contains no Any% entry, filling with {}", time.0, time.1)
-			}else if combined_times[&time.0] > time.1{
-				println!("{} has {} but we found a faster time, will replace with {}", time.0, combined_times[&time.0], time.1);
-			}
-
 			if !combined_times.contains_key(&time.0) || combined_times[&time.0] > time.1{
 				combined_times.insert(time.0, time.1);
 			}
@@ -684,4 +673,33 @@ async fn main(){
 	println!("Backend istening on http://{}", listener.local_addr().unwrap());
 
 	axum::serve(listener, app).await.unwrap();
+}
+
+#[cfg(test)]
+mod tests{
+	use super::*;
+
+	#[tokio::test]
+	async fn combine_times_best_only_test(){
+		let vars = HashMap::new();
+		let mut all_boards: Vec<Leaderboard> = Vec::new();
+
+		let asylum_any = src_api::get_leaderboard(ASYLUM_GAME_ID, ASYLUM_ANY_CAT_ID, &vars).await;
+		let asylum_nms = src_api::get_leaderboard(ASYLUM_GAME_ID, ASYLUM_NMS_CAT_ID, &vars).await;
+		let asylum_100 = src_api::get_leaderboard(ASYLUM_GAME_ID, ASYLUM_100_CAT_ID, &vars).await;
+		let asylum_100_nms = src_api::get_leaderboard(ASYLUM_GAME_ID, ASYLUM_100_NMS_CAT_ID, &vars).await;
+		
+		assert!(asylum_any.is_some());
+		assert!(asylum_nms.is_some());
+		assert!(asylum_100.is_some());
+		assert!(asylum_100_nms.is_some());
+		all_boards.push(asylum_any.unwrap());
+		all_boards.push(asylum_nms.unwrap());
+		all_boards.push(asylum_100.unwrap());
+		all_boards.push(asylum_100_nms.unwrap());
+
+		let combined_times = combine_times_best_only(&all_boards).await;
+		assert!(combined_times.contains_key("ShikenNuggets"));
+		assert!(combined_times["ShikenNuggets"] <= 3845.0);
+	}
 }
