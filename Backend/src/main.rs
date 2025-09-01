@@ -1,31 +1,14 @@
 mod asylum;
 mod city;
 mod origins;
+mod knight;
 
 mod speedrun_utils;
 mod speedrun_api;
 mod utils;
 
-const KNIGHT_GAME_ID: &str = "4d7p4rd7";
 const MULTI_GAME_ID: &str = "nd2eyoed";
 const CATEXT_GAME_ID: &str = "m1mnnv3d";
-
-// -------------------------------------------------- //
-// ------------------- Knight ----------------------- //
-// -------------------------------------------------- //
-const KNIGHT_ANY_CAT_ID: &str = "7kjg8gk3";
-const KNIGHT_GLITCHLESS_CAT_ID: &str = "7kjz9p3d";
-const KNIGHT_FALL_CAT_ID: &str = "02q8rg72";
-
-const KNIGHT_ANY_DIFFICULTY_VAR_ID: &str = "5ly35gn4";
-	const KNIGHT_ANY_EASY_VAL_ID: &str = "21gn0o6l";
-	const KNIGHT_ANY_NORMAL_VAL_ID: &str = "z19x0pj1";
-	const KNIGHT_ANY_HARD_VAL_ID: &str = "jqzn2y2q";
-
-const KNIGHT_GLITCHLESS_DIFFICULTY_VAR_ID: &str = "38d69xl0";
-	const KNIGHT_GLITCHLESS_EASY_VAL_ID: &str = "5lenpwpl";
-	const KNIGHT_GLITCHLESS_NORMAL_VAL_ID: &str = "4lxgmjjq";
-	const KNIGHT_GLITCHLESS_HARD_VAL_ID: &str = "0q54d0rl";
 
 use axum::{
 	http::{HeaderValue, Method}, routing::get, Json, Router
@@ -186,54 +169,6 @@ async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i64>
 	return run_ranks;
 }
 
-async fn get_variable_value_name(var: &Variable, value_id: &str) -> Option<String>{
-	for val in &var.values.values{
-		if val.1.label == value_id{
-			return Some(val.1.label.clone());
-		}
-	}
-
-	return None;
-}
-
-async fn get_leaderboard_name(leaderboard: &Leaderboard) -> String{
-	let mut lb_name: String = String::new();
-
-	let api_game = src_api::get_game(&leaderboard.game).await;
-	if api_game.is_some(){
-		lb_name += &api_game.unwrap().names.international;
-		lb_name += " - ";
-	}
-
-	let api_category = src_api::get_category(&leaderboard.category).await;
-	if api_category.is_some(){
-		lb_name += &api_category.unwrap().name;
-	}
-
-	for var in &leaderboard.values{
-		let api_var = src_api::get_variable(var.0).await;
-		if api_var.is_none(){
-			continue;
-		}
-		let api_var = api_var.unwrap();
-
-		let value_name = get_variable_value_name(&api_var, var.1).await;
-		if value_name.is_none(){
-			continue;
-		}
-		let value_name = value_name.unwrap();
-
-		lb_name += " (";
-		lb_name += &api_var.name;
-		lb_name += " = ";
-		lb_name += &value_name;
-		lb_name += ")";
-	}
-
-	return lb_name;
-
-}
-
 async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_wr: bool) -> HashMap<String, f64>{
 	let mut runner_times: HashMap<String, f64> = HashMap::new();
 
@@ -311,29 +246,6 @@ async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String
 	return runner_ranks;
 }
 
-async fn get_leaderboard_for_subcategory(game_id: &str, category_id: &str, var_id: &str, val_id: &str) -> Option<Leaderboard>{
-	let mut vars: HashMap<String, String> = HashMap::new();
-	vars.insert(var_id.to_string(), val_id.to_string());
-	return src_api::get_leaderboard(game_id, category_id, &vars).await;
-}
-
-async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64>{
-	let mut combined_times: HashMap<String, f64> = HashMap::new();
-
-	for leaderboard in leaderboards{
-		let mut lb_temp: Vec<Leaderboard> = Vec::new();
-		lb_temp.push(leaderboard.clone());
-		let times = get_total_runner_times(&lb_temp, false).await;
-		for time in times{
-			if !combined_times.contains_key(&time.0) || combined_times[&time.0] > time.1{
-				combined_times.insert(time.0, time.1);
-			}
-		}
-	}
-	
-	return combined_times;
-}
-
 async fn combine_times(asylum_times: &HashMap<String, f64>, city_times: &HashMap<String, f64>, origins_times: &HashMap<String, f64>, knight_times: &HashMap<String, f64>) -> HashMap<String, f64>{
 	let mut final_times: HashMap<String, f64> = HashMap::new();
 
@@ -349,45 +261,11 @@ async fn combine_times(asylum_times: &HashMap<String, f64>, city_times: &HashMap
 	return final_times;
 }
 
-async fn get_best_knight_any_percent_times() -> HashMap<String, f64>{
-	let any_easy = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_ANY_CAT_ID, KNIGHT_ANY_DIFFICULTY_VAR_ID, KNIGHT_ANY_EASY_VAL_ID).await;
-	let any_normal = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_ANY_CAT_ID, KNIGHT_ANY_DIFFICULTY_VAR_ID, KNIGHT_ANY_NORMAL_VAL_ID).await;
-	let any_hard = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_ANY_CAT_ID, KNIGHT_ANY_DIFFICULTY_VAR_ID, KNIGHT_ANY_HARD_VAL_ID).await;
-
-	let glitchless_easy = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_GLITCHLESS_CAT_ID, KNIGHT_GLITCHLESS_DIFFICULTY_VAR_ID, KNIGHT_GLITCHLESS_EASY_VAL_ID).await;
-	let glitchless_normal = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_GLITCHLESS_CAT_ID, KNIGHT_GLITCHLESS_DIFFICULTY_VAR_ID, KNIGHT_GLITCHLESS_NORMAL_VAL_ID).await;
-	let glitchless_hard = get_leaderboard_for_subcategory(KNIGHT_GAME_ID, KNIGHT_GLITCHLESS_CAT_ID, KNIGHT_GLITCHLESS_DIFFICULTY_VAR_ID, KNIGHT_GLITCHLESS_HARD_VAL_ID).await;
-
-	let vars = HashMap::new();
-	let knightfall = src_api::get_leaderboard(KNIGHT_GAME_ID, KNIGHT_FALL_CAT_ID, &vars).await;
-
-	if any_easy.is_none() || any_normal.is_none() || any_hard.is_none()
-		|| glitchless_easy.is_none() || glitchless_normal.is_none() || glitchless_hard.is_none()
-		|| knightfall.is_none()
-	{
-		println!("Failed to get all Any% boards for Knight");
-		return HashMap::new();
-	}
-
-	let mut all_boards: Vec<Leaderboard> = Vec::new();
-	all_boards.push(any_easy.unwrap());
-	all_boards.push(any_normal.unwrap());
-	all_boards.push(any_hard.unwrap());
-
-	all_boards.push(glitchless_easy.unwrap());
-	all_boards.push(glitchless_normal.unwrap());
-	all_boards.push(glitchless_hard.unwrap());
-
-	all_boards.push(knightfall.unwrap());
-
-	return combine_times_best_only(&all_boards).await;
-}
-
 async fn get_all_any_percent_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_any_percent_times().await;
 	let city_any_times = city::get_best_any_percent_times().await;
 	let origins_any_times = origins::get_best_any_percent_times().await;
-	let knight_any_times = get_best_knight_any_percent_times().await;
+	let knight_any_times = knight::get_best_any_percent_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
 		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
@@ -412,7 +290,7 @@ async fn get_all_glitchless_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_glitchless_times().await;
 	let city_any_times = city::get_best_glitchless_times().await;
 	let origins_any_times = origins::get_best_glitchless_times().await;
-	let knight_any_times = get_best_knight_any_percent_times().await;
+	let knight_any_times = knight::get_best_glitchless_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
 		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
@@ -436,8 +314,8 @@ async fn get_all_glitchless_times() -> HashMap<String, f64>{
 async fn get_all_hundo_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_hundo_times().await;
 	let city_any_times = city::get_best_hundo_times().await;
-	let origins_any_times = origins::get_best_glitchless_times().await;
-	let knight_any_times = get_best_knight_any_percent_times().await;
+	let origins_any_times = origins::get_best_hundo_times().await;
+	let knight_any_times = knight::get_best_hundo_times().await;
 
 	if asylum_any_times.contains_key("ShikenNuggets"){
 		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
@@ -464,7 +342,7 @@ async fn main(){
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
 	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
 	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(origins::GAME_ID).await;
-	let knight_leaderboards = src_api::get_all_fullgame_leaderboards(KNIGHT_GAME_ID).await;
+	let knight_leaderboards = src_api::get_all_fullgame_leaderboards(knight::GAME_ID).await;
 	let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
 	let _catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
 
