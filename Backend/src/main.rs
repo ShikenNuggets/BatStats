@@ -3,6 +3,7 @@ mod city;
 mod origins;
 mod knight;
 
+mod mastery;
 mod speedrun_api;
 mod utils;
 
@@ -378,6 +379,22 @@ async fn main(){
 	let any_times = get_all_hundo_times().await;
 	println!("100% Times: {:?}", any_times);
 
+	println!("--------------------------------------------------");
+	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
+	println!("Asylum Mastery: {:?}", asylum_mastery);
+
+	println!("--------------------------------------------------");
+	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
+	println!("City Mastery: {:?}", city_mastery);
+
+	println!("--------------------------------------------------");
+	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
+	println!("Origins Mastery: {:?}", origins_mastery);
+
+	println!("--------------------------------------------------");
+	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
+	println!("Knight Mastery: {:?}", knight_mastery);
+
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
 
@@ -458,7 +475,7 @@ mod tests{
 		all_boards.push(asylum_100.unwrap());
 		all_boards.push(asylum_100_nms.unwrap());
 
-		let combined_times = combine_times_best_only(&all_boards).await;
+		let combined_times = utils::combine_times_best_only(&all_boards).await;
 		assert!(combined_times.contains_key("ShikenNuggets"));
 		assert!(combined_times["ShikenNuggets"] <= 3845.0);
 	}
