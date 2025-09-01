@@ -1,5 +1,6 @@
 use std::{collections::HashMap};
 
+use crate::speedrun_api::src_cache::LEADERBOARD_CACHE;
 use crate::speedrun_api::{http_utils, src_api, src_cache};
 use crate::speedrun_api::types::category::{Category, CategoryType};
 use crate::speedrun_api::types::game::Game;
@@ -135,6 +136,12 @@ pub async fn get_leaderboard(game: &str, category: &str, variables: &HashMap<Str
 		args.insert(format!("var-{}", var.0), var.1.clone());
 	}
 
+	let cache_key = types::leaderboard::get_leaderboard_cache_key(game, category, variables);
+	let cached_leaderboard = LEADERBOARD_CACHE.get(&cache_key);
+	if cached_leaderboard.is_some(){
+		return cached_leaderboard;
+	}
+
 	let result = http_utils::get_http_result_with_args(&str, args).await;
 
 	let body = match result {
@@ -155,6 +162,7 @@ pub async fn get_leaderboard(game: &str, category: &str, variables: &HashMap<Str
 	 	}
 	};
 
+	LEADERBOARD_CACHE.insert(&map.data);
 	return Some(map.data);
 }
 
