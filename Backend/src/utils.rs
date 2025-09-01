@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use chrono::{Duration, NaiveDate, Utc};
+
 use crate::speedrun_api::{src_api, types::{leaderboard::Leaderboard, run::{RunPlayer, RunPlayerType}}};
 
 pub async fn get_player_name(player : &RunPlayer) -> Option<String>{
@@ -51,6 +53,57 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
 	}
 
 	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+}
+
+pub fn get_average_time(leaderboard: &Leaderboard) -> Option<f64>{
+	if leaderboard.runs.is_empty(){
+		return None;
+	}
+
+	let mut total_time: f64 = 0.0;
+	for run in &leaderboard.runs{
+		total_time += run.run.times.primary_t;
+	}
+
+	return Some(total_time / (leaderboard.runs.len() as f64));
+}
+
+fn is_more_than_n_years_ago(date: &NaiveDate, years: i64) -> bool{
+	let current_date = Utc::now().date_naive();
+	let n_years_ago = current_date - Duration::days(365 * years);
+	return date < &n_years_ago;
+}
+
+pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64>{
+	let real_average = get_average_time(leaderboard);
+	if real_average.is_none() || leaderboard.runs.len() < 5{
+		return real_average;
+	}
+	let real_average = real_average.unwrap();
+
+	let mut total_time: f64 = 0.0;
+	let mut num_times: i64 = 0;
+
+	for run in &leaderboard.runs{
+		if run.run.date.is_none(){
+			continue; // Ignore runs that are too old to have a date
+		}
+
+		if run.run.times.primary_t > real_average && is_more_than_n_years_ago(&run.run.date.unwrap(), 5){
+			continue; // Ignore very old runs that are above average
+		}
+
+		num_times += 1;
+		total_time += run.run.times.primary_t;
+	}
+
+	let adjusted_average = total_time / (num_times as f64);
+
+	if adjusted_average <= 0.0 || adjusted_average > real_average || num_times == 0{
+		return Some(real_average);
+	}
+
+	return Some(adjusted_average);
 }
 
 async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
