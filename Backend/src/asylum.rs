@@ -52,7 +52,7 @@ pub async fn get_best_glitchless_times() -> HashMap<String, f64>{
 	let hundo_nms = src_api::get_leaderboard(GAME_ID, HUNDO_NMS_CAT_ID, &vars).await;
 
 	if nms.is_none() || hundo_nms.is_none(){
-		println!("Failed to get all Any% boards for Asylum");
+		println!("Failed to get all Glitchless boards for Asylum");
 		return HashMap::new();
 	}
 
@@ -69,7 +69,7 @@ pub async fn get_best_hundo_times() -> HashMap<String, f64>{
 	let hundo_nms = src_api::get_leaderboard(GAME_ID, HUNDO_NMS_CAT_ID, &vars).await;
 
 	if hundo.is_none() || hundo_nms.is_none(){
-		println!("Failed to get all Any% boards for Asylum");
+		println!("Failed to get all 100% boards for Asylum");
 		return HashMap::new();
 	}
 

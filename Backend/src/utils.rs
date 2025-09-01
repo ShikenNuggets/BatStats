@@ -125,6 +125,12 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_w
 	return runner_times;
 }
 
+pub async fn get_leaderboard_for_subcategory(game_id: &str, category_id: &str, var_id: &str, val_id: &str) -> Option<Leaderboard>{
+	let mut vars: HashMap<String, String> = HashMap::new();
+	vars.insert(var_id.to_string(), val_id.to_string());
+	return src_api::get_leaderboard(game_id, category_id, &vars).await;
+}
+
 pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64>{
 	let mut combined_times: HashMap<String, f64> = HashMap::new();
 

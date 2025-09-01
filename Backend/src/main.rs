@@ -1,42 +1,13 @@
 mod asylum;
+mod city;
 mod speedrun_utils;
 mod speedrun_api;
 mod utils;
 
-const CITY_GAME_ID: &str = "x3692ldl";
 const ORIGINS_GAME_ID: &str = "4pdvp4dw";
 const KNIGHT_GAME_ID: &str = "4d7p4rd7";
 const MULTI_GAME_ID: &str = "nd2eyoed";
 const CATEXT_GAME_ID: &str = "m1mnnv3d";
-
-// -------------------------------------------------- //
-// -------------------- City ------------------------ //
-// -------------------------------------------------- //
-const CITY_ANY_CAT_ID: &str = "5dwjjogk";
-const CITY_ANY_WCAT_CAT_ID: &str = "p7kjxg23";
-const CITY_GLITCHLESS_CAT_ID: &str = "wdmw6ne2";
-const CITY_GLITCHLESS_WCAT_CAT_ID: &str = "z273g9od";
-const CITY_100_CAT_ID: &str = "4xk9qx20";
-
-const CITY_ANY_DIFFICULTY_VAR_ID: &str = "jlze37l2";
-	const CITY_ANY_EASY_VAL_ID: &str = "gq753nr1";
-	const CITY_ANY_NORMAL_VAL_ID: &str = "rqvm995q";
-	const CITY_ANY_HARD_VAL_ID: &str = "21gn0jol";
-
-const CITY_ANY_WCAT_DIFFICULTY_VAR_ID: &str = "789p93nw";
-	const CITY_ANY_WCAT_EASY_VAL_ID: &str = "z192e88q";
-	const CITY_ANY_WCAT_NORMAL_VAL_ID: &str = "0132ppkq";
-	const CITY_ANY_WCAT_HARD_VAL_ID: &str = "p12vjx4q";
-
-const CITY_GLITCHLESS_DIFFICULTY_VAR_ID: &str = "ylpv6x6l";
-	const CITY_GLITCHLESS_EASY_VAL_ID: &str = "zqoyxpx1";
-	const CITY_GLITCHLESS_NORMAL_VAL_ID: &str = "013v98xl";
-	const CITY_GLITCHLESS_HARD_VAL_ID: &str = "rqv4vp6q";
-
-const CITY_GLITCHLESS_WCAT_DIFFICULTY_VAR_ID: &str = "p8564xng";
-	const CITY_GLITCHLESS_WCAT_EASY_VAL_ID: &str = "5len8mpl";
-	const CITY_GLITCHLESS_WCAT_NORMAL_VAL_ID: &str = "rqvm9g7q";
-	const CITY_GLITCHLESS_WCAT_HARD_VAL_ID: &str = "0q548grl";
 
 // -------------------------------------------------- //
 // ------------------ Origins ----------------------- //
@@ -394,58 +365,6 @@ async fn combine_times(asylum_times: &HashMap<String, f64>, city_times: &HashMap
 	return final_times;
 }
 
-async fn get_best_city_any_percent_times() -> HashMap<String, f64>{
-	let any_easy = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_CAT_ID, CITY_ANY_DIFFICULTY_VAR_ID, CITY_ANY_EASY_VAL_ID).await;
-	let any_normal = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_CAT_ID, CITY_ANY_DIFFICULTY_VAR_ID, CITY_ANY_NORMAL_VAL_ID).await;
-	let any_hard = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_CAT_ID, CITY_ANY_DIFFICULTY_VAR_ID, CITY_ANY_HARD_VAL_ID).await;
-
-	let any_wcat_easy = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_WCAT_CAT_ID, CITY_ANY_WCAT_DIFFICULTY_VAR_ID, CITY_ANY_WCAT_EASY_VAL_ID).await;
-	let any_wcat_normal = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_WCAT_CAT_ID, CITY_ANY_WCAT_DIFFICULTY_VAR_ID, CITY_ANY_WCAT_NORMAL_VAL_ID).await;
-	let any_wcat_hard = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_ANY_WCAT_CAT_ID, CITY_ANY_WCAT_DIFFICULTY_VAR_ID, CITY_ANY_WCAT_HARD_VAL_ID).await;
-
-	let glitchless_easy = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_CAT_ID, CITY_GLITCHLESS_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_EASY_VAL_ID).await;
-	let glitchless_normal = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_CAT_ID, CITY_GLITCHLESS_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_NORMAL_VAL_ID).await;
-	let glitchless_hard = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_CAT_ID, CITY_GLITCHLESS_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_HARD_VAL_ID).await;
-
-	let glitchless_wcat_easy = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_WCAT_CAT_ID, CITY_GLITCHLESS_WCAT_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_WCAT_EASY_VAL_ID).await;
-	let glitchless_wcat_normal = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_WCAT_CAT_ID, CITY_GLITCHLESS_WCAT_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_WCAT_NORMAL_VAL_ID).await;
-	let glitchless_wcat_hard = get_leaderboard_for_subcategory(CITY_GAME_ID, CITY_GLITCHLESS_WCAT_CAT_ID, CITY_GLITCHLESS_WCAT_DIFFICULTY_VAR_ID, CITY_GLITCHLESS_WCAT_HARD_VAL_ID).await;
-
-	let vars = HashMap::new();
-	let hundo = src_api::get_leaderboard(CITY_GAME_ID, CITY_100_CAT_ID, &vars).await;
-
-	if any_easy.is_none() || any_normal.is_none() || any_hard.is_none()
-		|| any_wcat_easy.is_none() || any_wcat_normal.is_none() || any_wcat_hard.is_none()
-		|| glitchless_easy.is_none() || glitchless_normal.is_none() || glitchless_hard.is_none()
-		|| glitchless_wcat_easy.is_none() || glitchless_wcat_normal.is_none() || glitchless_wcat_hard.is_none()
-		|| hundo.is_none()
-	{
-		println!("Failed to get all Any% boards for City");
-		return HashMap::new();
-	}
-
-	let mut all_boards: Vec<Leaderboard> = Vec::new();
-	all_boards.push(any_easy.unwrap());
-	all_boards.push(any_normal.unwrap());
-	all_boards.push(any_hard.unwrap());
-
-	all_boards.push(any_wcat_easy.unwrap());
-	all_boards.push(any_wcat_normal.unwrap());
-	all_boards.push(any_wcat_hard.unwrap());
-
-	all_boards.push(glitchless_easy.unwrap());
-	all_boards.push(glitchless_normal.unwrap());
-	all_boards.push(glitchless_hard.unwrap());
-
-	all_boards.push(glitchless_wcat_easy.unwrap());
-	all_boards.push(glitchless_wcat_normal.unwrap());
-	all_boards.push(glitchless_wcat_hard.unwrap());
-
-	all_boards.push(hundo.unwrap());
-
-	return combine_times_best_only(&all_boards).await;
-}
-
 async fn get_best_origins_any_percent_times() -> HashMap<String, f64>{
 	let any_easy = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_ANY_CAT_ID, ORIGINS_ANY_DIFFICULTY_VAR_ID, ORIGINS_ANY_EASY_VAL_ID).await;
 	let any_normal = get_leaderboard_for_subcategory(ORIGINS_GAME_ID, ORIGINS_ANY_CAT_ID, ORIGINS_ANY_DIFFICULTY_VAR_ID, ORIGINS_ANY_NORMAL_VAL_ID).await;
@@ -516,7 +435,7 @@ async fn get_best_knight_any_percent_times() -> HashMap<String, f64>{
 
 async fn get_all_any_percent_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_any_percent_times().await;
-	let city_any_times = get_best_city_any_percent_times().await;
+	let city_any_times = city::get_best_any_percent_times().await;
 	let origins_any_times = get_best_origins_any_percent_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
@@ -541,7 +460,7 @@ async fn get_all_any_percent_times() -> HashMap<String, f64>{
 
 async fn get_all_glitchless_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_glitchless_times().await;
-	let city_any_times = get_best_city_any_percent_times().await;
+	let city_any_times = city::get_best_glitchless_times().await;
 	let origins_any_times = get_best_origins_any_percent_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
@@ -566,7 +485,7 @@ async fn get_all_glitchless_times() -> HashMap<String, f64>{
 
 async fn get_all_hundo_times() -> HashMap<String, f64>{
 	let asylum_any_times = asylum::get_best_hundo_times().await;
-	let city_any_times = get_best_city_any_percent_times().await;
+	let city_any_times = city::get_best_hundo_times().await;
 	let origins_any_times = get_best_origins_any_percent_times().await;
 	let knight_any_times = get_best_knight_any_percent_times().await;
 
@@ -593,7 +512,7 @@ async fn get_all_hundo_times() -> HashMap<String, f64>{
 async fn main(){
 	println!("Getting initial leaderboard data...");
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
-	let city_leaderboards = src_api::get_all_fullgame_leaderboards(CITY_GAME_ID).await;
+	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
 	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(ORIGINS_GAME_ID).await;
 	let knight_leaderboards = src_api::get_all_fullgame_leaderboards(KNIGHT_GAME_ID).await;
 	let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
@@ -626,11 +545,11 @@ async fn main(){
 
 	println!("--------------------------------------------------");
 	let any_times = get_all_glitchless_times().await;
-	println!("Any% Times: {:?}", any_times);
+	println!("Glitchless Times: {:?}", any_times);
 
 	println!("--------------------------------------------------");
 	let any_times = get_all_hundo_times().await;
-	println!("Any% Times: {:?}", any_times);
+	println!("100% Times: {:?}", any_times);
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
