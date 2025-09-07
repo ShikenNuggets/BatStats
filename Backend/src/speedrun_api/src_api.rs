@@ -182,14 +182,10 @@ pub fn get_subcategories_for_category(category_id: &str, variables: &Vec<Variabl
 			continue;
 		}
 
-		println!("{} = {}", var.name, var.id);
-
 		for val in &var.values.values{
 			let mut map = HashMap::new();
 			map.insert(var.id.clone(), val.0.clone());
 			result.push(map);
-
-			println!("	{} = {}", val.1.label, val.0);
 		}
 	}
 

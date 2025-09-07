@@ -17,7 +17,7 @@ use axum::{
 use rand::Rng;
 use serde::{Serialize};
 use tower_http::cors::CorsLayer;
-use tokio::net::TcpListener;
+use tokio::{fs, net::TcpListener};
 
 use std::{collections::{HashMap, HashSet}};
 
@@ -267,22 +267,6 @@ async fn get_all_any_percent_times() -> HashMap<String, f64>{
 	let origins_any_times = origins::get_best_any_percent_times().await;
 	let knight_any_times = knight::get_best_any_percent_times().await;
 
-	if asylum_any_times.contains_key("ShikenNuggets"){
-		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
-	}
-
-	if city_any_times.contains_key("ShikenNuggets"){
-		println!("City = {}", city_any_times["ShikenNuggets"]);
-	}
-
-	if origins_any_times.contains_key("ShikenNuggets"){
-		println!("Origins = {}", origins_any_times["ShikenNuggets"]);
-	}
-
-	if knight_any_times.contains_key("ShikenNuggets"){
-		println!("Knight = {}", knight_any_times["ShikenNuggets"]);
-	}
-
 	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
 }
 
@@ -292,22 +276,6 @@ async fn get_all_glitchless_times() -> HashMap<String, f64>{
 	let origins_any_times = origins::get_best_glitchless_times().await;
 	let knight_any_times = knight::get_best_glitchless_times().await;
 
-	if asylum_any_times.contains_key("ShikenNuggets"){
-		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
-	}
-
-	if city_any_times.contains_key("ShikenNuggets"){
-		println!("City = {}", city_any_times["ShikenNuggets"]);
-	}
-
-	if origins_any_times.contains_key("ShikenNuggets"){
-		println!("Origins = {}", origins_any_times["ShikenNuggets"]);
-	}
-
-	if knight_any_times.contains_key("ShikenNuggets"){
-		println!("Knight = {}", knight_any_times["ShikenNuggets"]);
-	}
-
 	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
 }
 
@@ -316,22 +284,6 @@ async fn get_all_hundo_times() -> HashMap<String, f64>{
 	let city_any_times = city::get_best_hundo_times().await;
 	let origins_any_times = origins::get_best_hundo_times().await;
 	let knight_any_times = knight::get_best_hundo_times().await;
-
-	if asylum_any_times.contains_key("ShikenNuggets"){
-		println!("Asylum = {}", asylum_any_times["ShikenNuggets"]);
-	}
-
-	if city_any_times.contains_key("ShikenNuggets"){
-		println!("City = {}", city_any_times["ShikenNuggets"]);
-	}
-
-	if origins_any_times.contains_key("ShikenNuggets"){
-		println!("Origins = {}", origins_any_times["ShikenNuggets"]);
-	}
-
-	if knight_any_times.contains_key("ShikenNuggets"){
-		println!("Knight = {}", knight_any_times["ShikenNuggets"]);
-	}
 
 	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
 }
@@ -362,6 +314,27 @@ async fn get_overall_mastery() -> HashMap<String, f64>{
 	merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
 
 	return overall_mastery;
+}
+
+fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>) -> Vec<(String, T)>{
+	let mut vec: Vec<(String, T)> = map.into_iter().collect();
+	vec.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+	return vec;
+}
+
+fn serialize_to_json<T: PartialOrd + Serialize>(map: HashMap<String, T>) -> String{
+	let sorted = get_sorted_values(map);
+	return serde_json::to_string(&sorted).unwrap();
+}
+
+async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: HashMap<String, T>) -> bool{
+	let content = serialize_to_json(map);
+	if let Err(e) = fs::write(file_name, content).await{
+		eprintln!("Could not write to file! Error: {}", e);
+		return false;
+	}
+
+	return true;
 }
 
 #[tokio::main]
