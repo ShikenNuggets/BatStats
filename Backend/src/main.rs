@@ -3,6 +3,7 @@ mod city;
 mod origins;
 mod knight;
 
+mod drive_upload;
 mod mastery;
 mod speedrun_api;
 mod utils;
@@ -413,6 +414,19 @@ async fn main(){
 	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
 	serialize_to_file("Data/OverallMastery.json", overall_mastery, Ordering::HigherIsBetter).await;
+
+	let access_token = drive_upload::setup_drive_upload().await;
+	drive_upload::upload_file_to_drive(&access_token, "Data/WorldRecords.json", "Data/WorldRecords.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/RunnerTimes.json", "Data/RunnerTimes.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/RunnerRanks.json", "Data/RunnerRanks.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/AnyTimes.json", "Data/AnyTimes.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/GlitchlessTimes.json", "Data/GlitchlessTimes.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/HundoTimes.json", "Data/HundoTimes.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/AsylumMastery.json", "Data/AsylumMastery.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/CityMastery.json", "Data/CityMastery.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/OriginsMastery.json", "Data/OriginsMastery.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/KnightMastery.json", "Data/KnightMastery.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "Data/OverallMastery.json", "Data/OverallMastery.json").await.unwrap();
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
