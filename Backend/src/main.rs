@@ -316,24 +316,36 @@ async fn get_overall_mastery() -> HashMap<String, f64>{
 	return overall_mastery;
 }
 
-fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>) -> Vec<(String, T)>{
+enum Ordering{
+	LowerIsBetter,
+	HigherIsBetter
+}
+
+fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) -> Vec<(String, T)>{
 	let mut vec: Vec<(String, T)> = map.into_iter().collect();
-	vec.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+	vec.sort_by(|a, b| {
+		if let Ordering::LowerIsBetter = order{
+			a.1.partial_cmp(&b.1).unwrap()
+		}else{
+			b.1.partial_cmp(&a.1).unwrap()
+		}
+	});
+
 	return vec;
 }
 
-fn serialize_to_json<T: PartialOrd + Serialize>(map: HashMap<String, T>) -> String{
-	let sorted = get_sorted_values(map);
+fn serialize_to_json<T: PartialOrd + Serialize>(map: HashMap<String, T>, order: Ordering) -> String{
+	let sorted = get_sorted_values(map, order);
 	return serde_json::to_string(&sorted).unwrap();
 }
 
-async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: HashMap<String, T>) -> bool{
+async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: HashMap<String, T>, order: Ordering) -> bool{
 	let dir = Path::new(file_name).parent().unwrap();
 	if !dir.exists(){
 		fs::create_dir_all(dir).await.unwrap();
 	}
 
-	let content = serialize_to_json(map);
+	let content = serialize_to_json(map, order);
 	if let Err(e) = fs::write(file_name, content).await{
 		eprintln!("Could not write to file! Error: {}", e);
 		return false;
@@ -360,47 +372,47 @@ async fn main(){
 
 	println!("Processing world records...");
 	let wrs = get_world_records(&all_main_boards).await;
-	serialize_to_file("Data/WorldRecords.json", wrs).await;
+	serialize_to_file("Data/WorldRecords.json", wrs, Ordering::HigherIsBetter).await;
 
 	println!("Processing fastest runners...");
 	let runner_times = get_total_runner_times(&all_main_boards, true).await;
-	serialize_to_file("Data/RunnerTimes.json", runner_times).await;
+	serialize_to_file("Data/RunnerTimes.json", runner_times, Ordering::LowerIsBetter).await;
 
 	println!("Processing highest ranking runners...");
 	let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
-	serialize_to_file("Data/RunnerRanks.json", runner_ranks).await;
+	serialize_to_file("Data/RunnerRanks.json", runner_ranks, Ordering::LowerIsBetter).await;
 
 	println!("Processing Any% times...");
 	let any_times = get_all_any_percent_times().await;
-	serialize_to_file("Data/AnyTimes.json", any_times).await;
+	serialize_to_file("Data/AnyTimes.json", any_times, Ordering::LowerIsBetter).await;
 
 	println!("Processing Glitchless times...");
 	let glitchless_times = get_all_glitchless_times().await;
-	serialize_to_file("Data/GlitchlessTimes.json", glitchless_times).await;
+	serialize_to_file("Data/GlitchlessTimes.json", glitchless_times, Ordering::LowerIsBetter).await;
 
 	println!("Processing 100% times...");
 	let hundo_times = get_all_hundo_times().await;
-	serialize_to_file("Data/HundoTimes.json", hundo_times).await;
+	serialize_to_file("Data/HundoTimes.json", hundo_times, Ordering::LowerIsBetter).await;
 
 	println!("Processing Asylum mastery ranks...");
 	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-	serialize_to_file("Data/AsylumMastery.json", asylum_mastery).await;
+	serialize_to_file("Data/AsylumMastery.json", asylum_mastery, Ordering::HigherIsBetter).await;
 
 	println!("Processing City mastery ranks...");
 	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-	serialize_to_file("Data/CityMastery.json", city_mastery).await;
+	serialize_to_file("Data/CityMastery.json", city_mastery, Ordering::HigherIsBetter).await;
 
 	println!("Processing Origins mastery ranks...");
 	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-	serialize_to_file("Data/OriginsMastery.json", origins_mastery).await;
+	serialize_to_file("Data/OriginsMastery.json", origins_mastery, Ordering::HigherIsBetter).await;
 
 	println!("Processing Knight mastery ranks...");
 	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-	serialize_to_file("Data/KnightMastery.json", knight_mastery).await;
+	serialize_to_file("Data/KnightMastery.json", knight_mastery, Ordering::HigherIsBetter).await;
 
 	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
-	serialize_to_file("Data/OverallMastery.json", overall_mastery).await;
+	serialize_to_file("Data/OverallMastery.json", overall_mastery, Ordering::HigherIsBetter).await;
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
