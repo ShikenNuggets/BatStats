@@ -336,6 +336,34 @@ async fn get_all_hundo_times() -> HashMap<String, f64>{
 	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
 }
 
+fn merge_mastery(mastery: &HashMap<String, f64>, overall_mastery: &mut HashMap<String, f64>, divisor: f64){
+	for entry in mastery{
+		let name = entry.0.clone();
+		let value = entry.1 / divisor;
+		if overall_mastery.contains_key(&name){
+			let cur_val = overall_mastery[&name];
+			overall_mastery.insert(name,  cur_val + value);
+		}else{
+			overall_mastery.insert(name, value);
+		}
+	}
+}
+
+async fn get_overall_mastery() -> HashMap<String, f64>{
+	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
+	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
+	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
+	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
+
+	let mut overall_mastery = HashMap::new();
+	merge_mastery(&asylum_mastery, &mut overall_mastery, 4.0);
+	merge_mastery(&city_mastery, &mut overall_mastery, 4.0);
+	merge_mastery(&origins_mastery, &mut overall_mastery, 4.0);
+	merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
+
+	return overall_mastery;
+}
+
 #[tokio::main]
 async fn main(){
 	println!("Getting initial leaderboard data...");
@@ -394,6 +422,10 @@ async fn main(){
 	println!("--------------------------------------------------");
 	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
 	println!("Knight Mastery: {:?}", knight_mastery);
+
+	println!("--------------------------------------------------");
+	let overall_mastery = get_overall_mastery().await;
+	println!("Overall Mastery: {:?}", overall_mastery);
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
