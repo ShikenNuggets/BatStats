@@ -19,12 +19,12 @@ use serde::{Serialize};
 use tower_http::cors::CorsLayer;
 use tokio::{fs, net::TcpListener};
 
-use std::{collections::{HashMap, HashSet}};
+use std::{collections::{HashMap, HashSet}, path::Path};
 
 
 use speedrun_api::src_api;
 
-use crate::speedrun_api::{types::{leaderboard::{Leaderboard}, run::{RunPlayer, RunPlayerType}}};
+use crate::speedrun_api::types::{leaderboard::Leaderboard, run::{self, RunPlayer, RunPlayerType}};
 
 #[derive(Serialize)]
 struct RandomNumber{
@@ -328,6 +328,11 @@ fn serialize_to_json<T: PartialOrd + Serialize>(map: HashMap<String, T>) -> Stri
 }
 
 async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: HashMap<String, T>) -> bool{
+	let dir = Path::new(file_name).parent().unwrap();
+	if !dir.exists(){
+		fs::create_dir_all(dir).await.unwrap();
+	}
+
 	let content = serialize_to_json(map);
 	if let Err(e) = fs::write(file_name, content).await{
 		eprintln!("Could not write to file! Error: {}", e);
@@ -353,52 +358,49 @@ async fn main(){
 	all_main_boards.extend(origins_leaderboards.clone());
 	all_main_boards.extend(knight_leaderboards.clone());
 
-	println!("--------------------------------------------------");
 	println!("Processing world records...");
 	let wrs = get_world_records(&all_main_boards).await;
-	println!("World Records: {:?}", wrs);
+	serialize_to_file("Data/WorldRecords.json", wrs).await;
 
-	println!("--------------------------------------------------");
 	println!("Processing fastest runners...");
 	let runner_times = get_total_runner_times(&all_main_boards, true).await;
-	println!("All Runner Times: {:?}", runner_times);
+	serialize_to_file("Data/RunnerTimes.json", runner_times).await;
 
-	println!("--------------------------------------------------");
 	println!("Processing highest ranking runners...");
 	let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
-	println!("All Runner Ranks: {:?}", runner_ranks);
+	serialize_to_file("Data/RunnerRanks.json", runner_ranks).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing Any% times...");
 	let any_times = get_all_any_percent_times().await;
-	println!("Any% Times: {:?}", any_times);
+	serialize_to_file("Data/AnyTimes.json", any_times).await;
 
-	println!("--------------------------------------------------");
-	let any_times = get_all_glitchless_times().await;
-	println!("Glitchless Times: {:?}", any_times);
+	println!("Processing Glitchless times...");
+	let glitchless_times = get_all_glitchless_times().await;
+	serialize_to_file("Data/GlitchlessTimes.json", glitchless_times).await;
 
-	println!("--------------------------------------------------");
-	let any_times = get_all_hundo_times().await;
-	println!("100% Times: {:?}", any_times);
+	println!("Processing 100% times...");
+	let hundo_times = get_all_hundo_times().await;
+	serialize_to_file("Data/HundoTimes.json", hundo_times).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing Asylum mastery ranks...");
 	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-	println!("Asylum Mastery: {:?}", asylum_mastery);
+	serialize_to_file("Data/AsylumMastery.json", asylum_mastery).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing City mastery ranks...");
 	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-	println!("City Mastery: {:?}", city_mastery);
+	serialize_to_file("Data/CityMastery.json", city_mastery).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing Origins mastery ranks...");
 	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-	println!("Origins Mastery: {:?}", origins_mastery);
+	serialize_to_file("Data/OriginsMastery.json", origins_mastery).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing Knight mastery ranks...");
 	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-	println!("Knight Mastery: {:?}", knight_mastery);
+	serialize_to_file("Data/KnightMastery.json", knight_mastery).await;
 
-	println!("--------------------------------------------------");
+	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
-	println!("Overall Mastery: {:?}", overall_mastery);
+	serialize_to_file("Data/OverallMastery.json", overall_mastery).await;
 
 	//println!("Asylum: ");
 	//print_world_records_for_game(ASYLUM_GAME_ID).await;
