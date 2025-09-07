@@ -1,10 +1,9 @@
 use std::{env, io};
 
-use oauth2::{basic::BasicClient, AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl, TokenResponse};
+use oauth2::{basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenUrl, TokenResponse};
 
-use oauth2::reqwest::{async_http_client, http_client};
+use oauth2::reqwest::{async_http_client};
 
-use reqwest::blocking::Client as ReqwestClient;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 
 async fn get_user_code() -> String {
@@ -29,7 +28,7 @@ pub async fn setup_drive_upload() -> String{
     )
     .set_redirect_uri(RedirectUrl::new("http://localhost:8080".to_string()).unwrap());
 
-	let (auth_url, csrf_token) = client
+	let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         .add_scope(Scope::new("https://www.googleapis.com/auth/drive.file".to_string())) // Add each scope separately
         .url();

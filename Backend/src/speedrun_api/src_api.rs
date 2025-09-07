@@ -1,7 +1,9 @@
+#![allow(dead_code)]
+
 use std::{collections::HashMap};
 
 use crate::speedrun_api::src_cache::LEADERBOARD_CACHE;
-use crate::speedrun_api::{http_utils, src_api, src_cache};
+use crate::speedrun_api::{http_utils, src_cache};
 use crate::speedrun_api::types::category::{Category, CategoryType};
 use crate::speedrun_api::types::game::Game;
 use crate::speedrun_api::types::leaderboard::Leaderboard;
@@ -9,24 +11,6 @@ use crate::speedrun_api::types::variable::{Variable, VariablesResponse};
 use crate::speedrun_api::types::{self, category};
 
 const API_BASE_URL: &str = "https://www.speedrun.com/api/v1/";
-
-pub async fn get_game_id(game_name: &str){
-	let request_str = format!("{}games", API_BASE_URL);
-
-	let mut args: HashMap<String, String> = HashMap::new();
-	args.insert("name".to_string(), game_name.to_string());
-
-	let result = http_utils::get_http_result_with_args(&request_str, args).await;
-	let body = match result{
-		Ok(body) => body,
-		Err(err) => {
-			println!("HTPP request returned an error: {}", err);
-			return;
-		}
-	};
-
-	println!("{}", body);
-}
 
 pub async fn get_game(game_id: &str) -> Option<Game>{
 	let cached_game = src_cache::GAME_CACHE.get(game_id);
@@ -206,8 +190,6 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 		if let CategoryType::PerLevel = cat.category_type{
 			continue; // Ignore level categories
 		}
-
-		let game = src_api::get_game(game_id).await;
 
 		let subcats = get_subcategories_for_category(&cat.id, &vars);
 

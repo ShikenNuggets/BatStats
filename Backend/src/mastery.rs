@@ -1,4 +1,4 @@
-use std::{collections::HashMap, os::raw};
+use std::{collections::HashMap};
 
 use crate::{speedrun_api::{src_api, types::leaderboard::Leaderboard}, utils};
 
