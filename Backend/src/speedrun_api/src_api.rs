@@ -203,7 +203,6 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard>{
 		}
 
 		let game = src_api::get_game(game_id).await;
-		println!("{} {} = {}", game.unwrap().names.international, cat.id, cat.name);
 
 		let subcats = get_subcategories_for_category(&cat.id, &vars);
 
