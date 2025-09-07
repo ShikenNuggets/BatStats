@@ -94,6 +94,10 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 	let mut ret_val: Vec<category::Category> = Vec::new();
 
 	let request_str = format!("{}games/{}/categories", API_BASE_URL, game);
+	if src_cache::ALL_CATS_CACHE.contains_key(&request_str){
+		return src_cache::ALL_CATS_CACHE.get(&request_str).unwrap().to_vec();
+	}
+
 	let result = http_utils::get_http_result(&request_str).await;
 
 	let body = match result{
@@ -116,6 +120,7 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category>{
 		}
 	}
 
+	src_cache::ALL_CATS_CACHE.insert(request_str, ret_val.clone());
 	return ret_val;
 
 	//let map = match result {
@@ -288,6 +293,10 @@ pub async fn get_variable(variable_id: &str) -> Option<Variable>{
 
 pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable>{
 	let str = format!("{}games/{}/variables", API_BASE_URL, game_id);
+	if src_cache::ALL_VARS_CACHE.contains_key(&str){
+		return src_cache::ALL_VARS_CACHE.get(&str).unwrap().to_vec();
+	}
+
 	let result = http_utils::get_http_result(&str).await;
 
 	let body = match result{
@@ -308,5 +317,6 @@ pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable>{
 		}
 	};
 
+	src_cache::ALL_VARS_CACHE.insert(str, map.data.clone());
 	return map.data;
 }
