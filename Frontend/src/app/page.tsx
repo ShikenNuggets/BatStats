@@ -1,5 +1,6 @@
 "use client"
 
+import TimeTable from "@/components/TimeTable";
 //import Image from "next/image";
 //import styles from "./page.module.css";
 import { useEffect, useState } from "react";
@@ -7,15 +8,6 @@ import { useEffect, useState } from "react";
 type DataPair = [string, number];
 
 const GIST_RAW_URL = "https://gist.githubusercontent.com/ShikenNuggets/236a84140c883ee6aa4f28bc3d8ae973/raw/42a3e074c2933cb10b68dfca49902b1944fa2c3c/BatStats_AnyTimes.json";
-
-function formatSeconds(seconds: number): string{
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
-}
 
 export default function Home() {
   const [data, setData] = useState<DataPair[] | null>(null);
@@ -52,25 +44,8 @@ export default function Home() {
 
   return (
     <div>
-      <h1>Overall Any% Times</h1>
-      <table border={1} cellPadding={8}>
-        <thead>
-          <tr>
-            <th>Runner</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            data.map(([name, value], index) => (
-              <tr key={index}>
-                <td>{name}</td>
-                <td>{formatSeconds(value)}</td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
+      <h1 style={{ paddingTop: '10px', textAlign: 'center' }}>Batman Arkham Speedrunning Stats</h1>
+      <TimeTable data={data} title="Overall Any% Times" tableKey="Runner" tableValue="Time" />
     </div>
   );
 }
