@@ -20,9 +20,13 @@ function formatSeconds(seconds: number): string{
 
 const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue }) => {
 	return(
-		<div>
-			{title && <h2>{title}</h2>}
-			<table border={1} cellPadding={8}>
+		<div style={{ textAlign: 'center', paddingTop: '25px' }}>
+			{title && <h2 style={{ paddingBottom: '5px' }}>{title}</h2>}
+			<table style={{ display: 'inline-block', width: '20%', tableLayout: 'fixed' }} border={1} cellPadding={8}>
+		<colgroup>
+			<col style={{ width: '10%' }} />
+			<col style={{ width: '10%' }} />
+		</colgroup>
         <thead>
           <tr>
             <th>{tableKey}</th>
@@ -33,7 +37,7 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
           {
             data.map(([name, value], index) => (
               <tr key={index}>
-                <td>{name}</td>
+                <td style={{ textAlign: 'left', padding: '5px' }}>{name}</td>
                 <td>{formatSeconds(value)}</td>
               </tr>
             ))
