@@ -11,7 +11,7 @@ mod utils;
 const MULTI_GAME_ID: &str = "nd2eyoed";
 const CATEXT_GAME_ID: &str = "m1mnnv3d";
 
-use serde::{Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use tokio::fs;
 
 use std::{collections::{HashMap, HashSet}, path::Path};
@@ -338,6 +338,52 @@ async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: Hash
 	return true;
 }
 
+pub fn as_json_string<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    // Parse the string as JSON Value
+    let json_value: serde_json::Value = serde_json::from_str(value)
+        .map_err(serde::ser::Error::custom)?;
+    json_value.serialize(serializer)
+}
+
+#[derive(Default, Deserialize, Serialize)]
+pub struct OutputType{
+	#[serde(serialize_with = "as_json_string")]
+	pub world_records: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub runner_times: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub runner_ranks: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub any_times: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub glitchless_times: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub hundo_times: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub asylum_mastery: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub city_mastery: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub origins_mastery: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub knight_mastery: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub overall_mastery: String,
+}
+
 #[tokio::main]
 async fn main(){
 	println!("Getting initial leaderboard data...");
@@ -354,62 +400,64 @@ async fn main(){
 	all_main_boards.extend(origins_leaderboards.clone());
 	all_main_boards.extend(knight_leaderboards.clone());
 
+	let mut output_data: OutputType = Default::default();
+
 	println!("Processing world records...");
 	let wrs = get_world_records(&all_main_boards).await;
-	serialize_to_file("Data/WorldRecords.json", wrs, Ordering::HigherIsBetter).await;
+	output_data.world_records = serialize_to_json(wrs, Ordering::HigherIsBetter);
 
 	println!("Processing fastest runners...");
 	let runner_times = get_total_runner_times(&all_main_boards, true).await;
-	serialize_to_file("Data/RunnerTimes.json", runner_times, Ordering::LowerIsBetter).await;
+	output_data.runner_times = serialize_to_json(runner_times, Ordering::LowerIsBetter);
 
 	println!("Processing highest ranking runners...");
 	let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
-	serialize_to_file("Data/RunnerRanks.json", runner_ranks, Ordering::LowerIsBetter).await;
+	output_data.runner_ranks = serialize_to_json(runner_ranks, Ordering::LowerIsBetter);
 
 	println!("Processing Any% times...");
 	let any_times = get_all_any_percent_times().await;
-	serialize_to_file("Data/AnyTimes.json", any_times, Ordering::LowerIsBetter).await;
+	output_data.any_times = serialize_to_json(any_times, Ordering::LowerIsBetter);
 
 	println!("Processing Glitchless times...");
 	let glitchless_times = get_all_glitchless_times().await;
-	serialize_to_file("Data/GlitchlessTimes.json", glitchless_times, Ordering::LowerIsBetter).await;
+	output_data.glitchless_times = serialize_to_json(glitchless_times, Ordering::LowerIsBetter);
 
 	println!("Processing 100% times...");
 	let hundo_times = get_all_hundo_times().await;
-	serialize_to_file("Data/HundoTimes.json", hundo_times, Ordering::LowerIsBetter).await;
+	output_data.hundo_times = serialize_to_json(hundo_times, Ordering::LowerIsBetter);
 
 	println!("Processing Asylum mastery ranks...");
 	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-	serialize_to_file("Data/AsylumMastery.json", asylum_mastery, Ordering::HigherIsBetter).await;
+	output_data.asylum_mastery = serialize_to_json(asylum_mastery, Ordering::HigherIsBetter);
 
 	println!("Processing City mastery ranks...");
 	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-	serialize_to_file("Data/CityMastery.json", city_mastery, Ordering::HigherIsBetter).await;
+	output_data.city_mastery = serialize_to_json(city_mastery, Ordering::HigherIsBetter);
 
 	println!("Processing Origins mastery ranks...");
 	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-	serialize_to_file("Data/OriginsMastery.json", origins_mastery, Ordering::HigherIsBetter).await;
+	output_data.origins_mastery = serialize_to_json(origins_mastery, Ordering::HigherIsBetter);
 
 	println!("Processing Knight mastery ranks...");
 	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-	serialize_to_file("Data/KnightMastery.json", knight_mastery, Ordering::HigherIsBetter).await;
+	output_data.knight_mastery = serialize_to_json(knight_mastery, Ordering::HigherIsBetter);
 
 	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
-	serialize_to_file("Data/OverallMastery.json", overall_mastery, Ordering::HigherIsBetter).await;
+	output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
+
+	let dir = Path::new("BatStats.json").parent().unwrap();
+	if !dir.exists(){
+		fs::create_dir_all(dir).await.unwrap();
+	}
+
+	let content = serde_json::to_string(&output_data).unwrap();
+	if let Err(e) = fs::write("BatStats.json", content).await{
+		eprintln!("Could not write to file! Error: {}", e);
+	}
 
 	let access_token = drive_upload::setup_drive_upload().await;
-	drive_upload::upload_file_to_drive(&access_token, "Data/WorldRecords.json", "Data/WorldRecords.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/RunnerTimes.json", "Data/RunnerTimes.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/RunnerRanks.json", "Data/RunnerRanks.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/AnyTimes.json", "Data/AnyTimes.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/GlitchlessTimes.json", "Data/GlitchlessTimes.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/HundoTimes.json", "Data/HundoTimes.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/AsylumMastery.json", "Data/AsylumMastery.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/CityMastery.json", "Data/CityMastery.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/OriginsMastery.json", "Data/OriginsMastery.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/KnightMastery.json", "Data/KnightMastery.json").await.unwrap();
-	drive_upload::upload_file_to_drive(&access_token, "Data/OverallMastery.json", "Data/OverallMastery.json").await.unwrap();
+	drive_upload::upload_file_to_drive(&access_token, "BatStats.json", "BatStats.json").await.unwrap();
 }
 
 #[cfg(test)]
