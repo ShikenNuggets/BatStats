@@ -15,6 +15,7 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>>{
 
 	let mut retries = 0;
 	loop{
+		tokio::time::sleep(Duration::from_millis(101)).await;
 		let response = reqwest::get(url.clone()).await;
 		match response{
 			Ok(resp) => {
