@@ -36,8 +36,13 @@ export default function Home() {
 
         const json = await result.json();
         setData(json as BatStatsData);
-      }catch(err: any){
-        setError(err);
+      }catch(err: unknown){
+        if (err instanceof Error){
+          setError(err.message);
+        }else{
+          setError("Unknown error");
+        }
+        
       }finally{
         setLoading(false);
       }
