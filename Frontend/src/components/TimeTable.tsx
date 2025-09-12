@@ -1,12 +1,19 @@
 import React from 'react';
 
+export enum ValueType{
+  Seconds = "seconds",
+  Count = "count",
+  Percent = "percent"
+}
+
 type DataPair = [string, number];
 
 interface TimeTableProps{
 	data: DataPair[];
 	title: string;
 	tableKey: string;
-	tableValue: string
+	tableValue: string;
+  valueType: ValueType;
 }
 
 function formatSeconds(seconds: number): string{
@@ -18,7 +25,19 @@ function formatSeconds(seconds: number): string{
   return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
 }
 
-const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue }) => {
+const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue, valueType }) => {
+  const formatValue = (value: number) => {
+    switch(valueType){
+      case ValueType.Seconds:
+        return formatSeconds(value);
+      case ValueType.Percent:
+        return `${value.toFixed(2)}%`;
+			case ValueType.Count:
+			default:
+				return value;
+    }
+  };
+
 	return(
 		<div style={{ textAlign: 'center', paddingTop: '25px' }}>
 			{title && <h2 style={{ paddingBottom: '5px' }}>{title}</h2>}
@@ -38,7 +57,7 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
             data.map(([name, value], index) => (
               <tr key={index}>
                 <td style={{ textAlign: 'left', padding: '5px' }}>{name}</td>
-                <td>{formatSeconds(value)}</td>
+                <td>{formatValue(value)}</td>
               </tr>
             ))
           }
