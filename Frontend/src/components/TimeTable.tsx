@@ -13,7 +13,7 @@ interface TimeTableProps{
 	title: string;
 	tableKey: string;
 	tableValue: string;
-  valueType: ValueType;
+	valueType: ValueType | undefined;
 }
 
 function formatSeconds(seconds: number): string{
@@ -27,6 +27,10 @@ function formatSeconds(seconds: number): string{
 
 const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue, valueType }) => {
   const formatValue = (value: number) => {
+    if (valueType === undefined){
+      return value;
+    }
+
     switch(valueType){
       case ValueType.Seconds:
         return formatSeconds(value);
