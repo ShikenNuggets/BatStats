@@ -31,7 +31,7 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
       case ValueType.Seconds:
         return formatSeconds(value);
       case ValueType.Percent:
-        return `${value.toFixed(2)}%`;
+        return `${(value * 100).toFixed(2)}%`;
 			case ValueType.Count:
 			default:
 				return value;
