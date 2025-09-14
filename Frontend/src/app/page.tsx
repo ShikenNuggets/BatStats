@@ -5,6 +5,10 @@ import TimeTable, { ValueType } from "@/components/TimeTable";
 //import styles from "./page.module.css";
 import { useEffect, useState } from "react";
 
+type Metadata = {
+  date: Date;
+}
+
 type DataPair = {
   rank: number;
   player: string;
@@ -12,6 +16,7 @@ type DataPair = {
 };
 
 interface BatStatsData {
+  meta: Metadata;
   world_records: DataPair[];
   runner_times: DataPair[];
   runner_ranks: DataPair[];
@@ -89,9 +94,13 @@ export default function Home() {
     return <div>No data available - please try again later.</div>;
   }
 
+  const date = new Date(data.meta.date);
+
   return (
     <div>
       <h1 style={{ paddingTop: '10px', textAlign: 'center' }}>Batman Arkham Speedrunning Stats</h1>
+
+      <h4 style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>Last Updated: {date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</h4>
 
       {/* Buttons */}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>
@@ -115,7 +124,7 @@ export default function Home() {
       </div>
 
       <TimeTable
-        data={data[selectedKey]}
+        data={data[selectedKey] as DataPair[]}
         title={datasetConfigs.find((b) => b.key === selectedKey)?.tableTitle || 'Data'}
         tableKey="Runner"
         tableValue="Time"
