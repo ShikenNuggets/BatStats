@@ -1,6 +1,5 @@
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::{Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::env;

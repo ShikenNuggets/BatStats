@@ -3,7 +3,6 @@ mod city;
 mod origins;
 mod knight;
 
-mod drive_upload;
 mod gist_upload;
 mod mastery;
 mod speedrun_api;
@@ -348,21 +347,6 @@ fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(map: HashMap<String,
 	return serde_json::to_string(&data_entries).unwrap();
 }
 
-async fn serialize_to_file<T: PartialOrd + Into<f64> + Serialize>(file_name: &str, map: HashMap<String, T>, order: Ordering) -> bool{
-	let dir = Path::new(file_name).parent().unwrap();
-	if !dir.exists(){
-		fs::create_dir_all(dir).await.unwrap();
-	}
-
-	let content = serialize_to_json(map, order);
-	if let Err(e) = fs::write(file_name, content).await{
-		eprintln!("Could not write to file! Error: {}", e);
-		return false;
-	}
-
-	return true;
-}
-
 pub fn as_json_string<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -511,9 +495,6 @@ async fn main(){
 	}
 
 	gist_upload::upload_gist("BatStats.json").await.unwrap();
-
-	//let access_token = drive_upload::setup_drive_upload().await;
-	//drive_upload::upload_file_to_drive(&access_token, "BatStats.json", "BatStats.json").await.unwrap();
 }
 
 #[cfg(test)]
