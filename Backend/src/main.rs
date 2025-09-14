@@ -318,13 +318,26 @@ fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) ->
 	return vec;
 }
 
-fn get_values_as_data_entries<T: Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry>{
-	data.into_iter()
-        .map(|(player, value)| DataEntry {
-            player,
-            value: value.into(),
-        })
-        .collect()
+fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry>{
+	let mut result = Vec::with_capacity(data.len());
+	let mut prev_value: Option<f64> = None;
+	let mut prev_rank: i64 = 0;
+
+	for (index, (player, value)) in data.into_iter().enumerate(){
+		let value_f64 = value.into();
+		let rank = if Some(value_f64) == prev_value{
+			prev_rank
+		}else{
+			(index as i64) + 1
+		};
+
+		result.push(DataEntry { rank: rank, player: player, value: value_f64 });
+
+		prev_value = Some(value_f64);
+		prev_rank = rank;
+	}
+	
+	return result;
 }
 
 fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(map: HashMap<String, T>, order: Ordering) -> String{
@@ -358,10 +371,22 @@ where
     json_value.serialize(serializer)
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DataEntry{
+	pub rank: i64,
 	pub player: String,
 	pub value: f64,
+}
+
+impl Default for DataEntry{
+	fn default() -> Self {
+		return DataEntry
+		{
+			rank: -1,
+			player: String::new(),
+			value: 0.0
+		};
+	}
 }
 
 #[derive(Default, Deserialize, Serialize)]
