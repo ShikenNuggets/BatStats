@@ -61,7 +61,7 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
 		</colgroup>
         <thead>
           <tr>
-            <th>Rank</th>
+            <th style={{ paddingLeft: '10px', paddingRight: '10px' }}>Rank</th>
             <th>{tableKey}</th>
             <th>{tableValue}</th>
           </tr>
@@ -72,7 +72,7 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
               <tr key={index}>
                 <td style={{ textAlign: 'center' }}>{rank}</td>
                 <td style={{ textAlign: 'left', padding: '5px' }}>{player}</td>
-                <td>{formatValue(value)}</td>
+                <td style={{ padding: '5px' }}>{formatValue(value)}</td>
               </tr>
             ))
           }
