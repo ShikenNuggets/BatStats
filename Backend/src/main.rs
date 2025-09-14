@@ -4,6 +4,7 @@ mod origins;
 mod knight;
 
 mod drive_upload;
+mod gist_upload;
 mod mastery;
 mod speedrun_api;
 mod utils;
@@ -497,8 +498,10 @@ async fn main(){
 		eprintln!("Could not write to file! Error: {}", e);
 	}
 
-	let access_token = drive_upload::setup_drive_upload().await;
-	drive_upload::upload_file_to_drive(&access_token, "BatStats.json", "BatStats.json").await.unwrap();
+	gist_upload::upload_gist("BatStats.json").await.unwrap();
+
+	//let access_token = drive_upload::setup_drive_upload().await;
+	//drive_upload::upload_file_to_drive(&access_token, "BatStats.json", "BatStats.json").await.unwrap();
 }
 
 #[cfg(test)]
