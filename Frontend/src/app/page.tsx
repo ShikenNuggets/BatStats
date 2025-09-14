@@ -123,6 +123,7 @@ export default function Home() {
         ))}
       </div>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>
       <TimeTable
         data={data[selectedKey] as DataPair[]}
         title={datasetConfigs.find((b) => b.key === selectedKey)?.tableTitle || 'Data'}
@@ -130,6 +131,7 @@ export default function Home() {
         tableValue="Time"
         valueType={datasetConfigs.find((b) => b.key === selectedKey)?.valueType}
       />
+      </div>
     </div>
   );
 }

@@ -51,8 +51,8 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
   };
 
 	return(
-		<div style={{ textAlign: 'center', paddingTop: '25px' }}>
-			{title && <h2 style={{ paddingBottom: '5px' }}>{title}</h2>}
+		<div style={{ paddingTop: '25px' }}>
+			{title && <h2 style={{ textAlign: 'center', paddingBottom: '5px' }}>{title}</h2>}
 			<table style={{ display: 'inline-block', width: '20%', tableLayout: 'fixed' }} border={1} cellPadding={8}>
 		<colgroup>
 			<col style={{ width: '10%' }} />
