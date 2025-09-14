@@ -38,8 +38,8 @@ async fn get_player_name(player : &RunPlayer) -> Option<String>{
 	return Some(user.unwrap().names.international);
 }
 
-async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i64>{
-	let mut world_records: HashMap<String, i64> = HashMap::new();
+async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32>{
+	let mut world_records: HashMap<String, i32> = HashMap::new();
 	for lb in leaderboards{
 		let wr_run = lb.runs.first();
 		if !wr_run.is_some(){
@@ -102,7 +102,7 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
 	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
 }
 
-fn get_last_place(leaderboard: &Leaderboard) -> i64{
+fn get_last_place(leaderboard: &Leaderboard) -> i32{
 	if leaderboard.runs.is_empty(){
 		return 0;
 	}
@@ -132,8 +132,8 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
 	return run_times;
 }
 
-async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i64>{
-	let mut run_ranks: HashMap<String, i64> = HashMap::new();
+async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32>{
+	let mut run_ranks: HashMap<String, i32> = HashMap::new();
 
 	let last_place = get_last_place(leaderboard);
 	if last_place <= 0{
@@ -146,8 +146,8 @@ async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i64>
 			continue;
 		}
 
-		let rank_as_i64: i64 = run.place.into();
-		run_ranks.insert(runner_name.unwrap(), rank_as_i64 - 1);
+		let rank_as_i32: i32 = run.place.into();
+		run_ranks.insert(runner_name.unwrap(), rank_as_i32 - 1);
 	}
 
 	return run_ranks;
@@ -195,8 +195,8 @@ async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_w
 	return runner_times;
 }
 
-async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i64>{
-	let mut runner_ranks: HashMap<String, i64> = HashMap::new();
+async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32>{
+	let mut runner_ranks: HashMap<String, i32> = HashMap::new();
 
 	let all_runners = get_all_runners(leaderboards).await;
 	for runner in &all_runners{
@@ -318,12 +318,22 @@ fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) ->
 	return vec;
 }
 
-fn serialize_to_json<T: PartialOrd + Serialize>(map: HashMap<String, T>, order: Ordering) -> String{
-	let sorted = get_sorted_values(map, order);
-	return serde_json::to_string(&sorted).unwrap();
+fn get_values_as_data_entries<T: Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry>{
+	data.into_iter()
+        .map(|(player, value)| DataEntry {
+            player,
+            value: value.into(),
+        })
+        .collect()
 }
 
-async fn serialize_to_file<T: PartialOrd + Serialize>(file_name: &str, map: HashMap<String, T>, order: Ordering) -> bool{
+fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(map: HashMap<String, T>, order: Ordering) -> String{
+	let sorted = get_sorted_values(map, order);
+	let data_entries = get_values_as_data_entries(sorted);
+	return serde_json::to_string(&data_entries).unwrap();
+}
+
+async fn serialize_to_file<T: PartialOrd + Into<f64> + Serialize>(file_name: &str, map: HashMap<String, T>, order: Ordering) -> bool{
 	let dir = Path::new(file_name).parent().unwrap();
 	if !dir.exists(){
 		fs::create_dir_all(dir).await.unwrap();
@@ -346,6 +356,12 @@ where
     let json_value: serde_json::Value = serde_json::from_str(value)
         .map_err(serde::ser::Error::custom)?;
     json_value.serialize(serializer)
+}
+
+#[derive(Default, Deserialize, Serialize)]
+pub struct DataEntry{
+	pub player: String,
+	pub value: f64,
 }
 
 #[derive(Default, Deserialize, Serialize)]
