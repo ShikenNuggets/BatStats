@@ -6,7 +6,11 @@ export enum ValueType{
   Percent = "percent"
 }
 
-type DataPair = [string, number];
+type DataPair = {
+  rank: number;
+  player: string;
+  value: number;
+};
 
 interface TimeTableProps{
 	data: DataPair[];
@@ -27,6 +31,10 @@ function formatSeconds(seconds: number): string{
 
 const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue, valueType }) => {
   const formatValue = (value: number) => {
+    if (isNaN(value)){
+      console.log("Value was NaN");
+    }
+    
     if (valueType === undefined){
       return value;
     }
@@ -58,9 +66,9 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
         </thead>
         <tbody>
           {
-            data.map(([name, value], index) => (
+            data.map(({ player, value }, index) => (
               <tr key={index}>
-                <td style={{ textAlign: 'left', padding: '5px' }}>{name}</td>
+                <td style={{ textAlign: 'left', padding: '5px' }}>{player}</td>
                 <td>{formatValue(value)}</td>
               </tr>
             ))

@@ -5,18 +5,24 @@ import TimeTable, { ValueType } from "@/components/TimeTable";
 //import styles from "./page.module.css";
 import { useEffect, useState } from "react";
 
+type DataPair = {
+  rank: number;
+  player: string;
+  value: number;
+};
+
 interface BatStatsData {
-  world_records: [string, number][];
-  runner_times: [string, number][];
-  runner_ranks: [string, number][];
-  any_times: [string, number][];
-  glitchless_times: [string, number][];
-  hundo_times: [string, number][];
-  asylum_mastery: [string, number][];
-  city_mastery: [string, number][];
-  origins_mastery: [string, number][];
-  knight_mastery: [string, number][];
-  overall_mastery: [string, number][];
+  world_records: DataPair[];
+  runner_times: DataPair[];
+  runner_ranks: DataPair[];
+  any_times: DataPair[];
+  glitchless_times: DataPair[];
+  hundo_times: DataPair[];
+  asylum_mastery: DataPair[];
+  city_mastery: DataPair[];
+  origins_mastery: DataPair[];
+  knight_mastery: DataPair[];
+  overall_mastery: DataPair[];
 }
 
 type DataKey = keyof BatStatsData;
