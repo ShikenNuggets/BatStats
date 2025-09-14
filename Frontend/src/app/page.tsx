@@ -34,7 +34,7 @@ interface DatasetConfig {
   valueType: ValueType;
 }
 
-const GIST_RAW_URL = "https://gist.githubusercontent.com/ShikenNuggets/3adaa36be92dfb82f43b951b91387c1a/raw/924f925045bb0f2ff5229a68dd543d990c0bc6e9/BatStats.json";
+const GIST_RAW_URL = "https://gist.githubusercontent.com/ShikenNuggets/3adaa36be92dfb82f43b951b91387c1a/raw/BatStats.json";
 
 export default function Home() {
   const [data, setData] = useState<BatStatsData | null>(null);
