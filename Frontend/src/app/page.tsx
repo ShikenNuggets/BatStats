@@ -36,6 +36,7 @@ interface DatasetConfig {
   key: DataKey;
   buttonLabel: string;
   tableTitle: string;
+  tableValue: string;
   valueType: ValueType;
 }
 
@@ -48,17 +49,17 @@ export default function Home() {
   const [selectedKey, setSelectedKey] = useState<DataKey>('any_times');
 
   const datasetConfigs: DatasetConfig[] = [
-    { key: 'any_times', buttonLabel: 'Any%', tableTitle: 'Overall Any% Times', valueType: ValueType.Seconds },
-    { key: 'glitchless_times', buttonLabel: 'Glitchless', tableTitle: 'Overall Glitchless Times', valueType: ValueType.Seconds  },
-    { key: 'hundo_times', buttonLabel: '100%', tableTitle: 'Overall 100% Times', valueType: ValueType.Seconds  },
-    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', valueType: ValueType.Percent },
-    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', valueType: ValueType.Percent  },
-    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', valueType: ValueType.Percent  },
-    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', valueType: ValueType.Percent  },
-    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', valueType: ValueType.Percent  },
-    { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', valueType: ValueType.Count  },
-    { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', valueType: ValueType.Seconds  },
-    { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', valueType: ValueType.Count  },
+    { key: 'any_times', buttonLabel: 'Any%', tableTitle: 'Overall Any% Times', tableValue: "Time", valueType: ValueType.Seconds },
+    { key: 'glitchless_times', buttonLabel: 'Glitchless', tableTitle: 'Overall Glitchless Times', tableValue: "Time", valueType: ValueType.Seconds  },
+    { key: 'hundo_times', buttonLabel: '100%', tableTitle: 'Overall 100% Times', tableValue: "Time", valueType: ValueType.Seconds  },
+    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', tableValue: "Mastery", valueType: ValueType.Percent },
+    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
+    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
+    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
+    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
+    { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', tableValue: "WRs", valueType: ValueType.Count  },
+    { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', tableValue: "Time", valueType: ValueType.Seconds  },
+    { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', tableValue: "Rank", valueType: ValueType.Count  },
   ];
 
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function Home() {
         data={data[selectedKey] as DataPair[]}
         title={datasetConfigs.find((b) => b.key === selectedKey)?.tableTitle || 'Data'}
         tableKey="Runner"
-        tableValue="Time"
+        tableValue={datasetConfigs.find((b) => b.key === selectedKey)?.tableValue || 'Value'}
         valueType={datasetConfigs.find((b) => b.key === selectedKey)?.valueType}
       />
       </div>
