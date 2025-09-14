@@ -12,6 +12,7 @@ mod utils;
 const MULTI_GAME_ID: &str = "nd2eyoed";
 const CATEXT_GAME_ID: &str = "m1mnnv3d";
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, Serializer};
 use tokio::fs;
 
@@ -390,8 +391,16 @@ impl Default for DataEntry{
 	}
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct MetaData{
+	pub date: DateTime<Utc>
+}
+
 #[derive(Default, Deserialize, Serialize)]
 pub struct OutputType{
+	#[serde(serialize_with = "as_json_string")]
+	pub meta: String,
+
 	#[serde(serialize_with = "as_json_string")]
 	pub world_records: String,
 
@@ -487,6 +496,9 @@ async fn main(){
 	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
 	output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
+
+	let meta_data = MetaData { date: Utc::now() };
+	output_data.meta = serde_json::to_string(&meta_data).unwrap();
 
 	let dir = Path::new("BatStats.json").parent().unwrap();
 	if !dir.exists(){
