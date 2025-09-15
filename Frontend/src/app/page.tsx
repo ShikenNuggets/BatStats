@@ -38,7 +38,15 @@ interface DatasetConfig {
   tableTitle: string;
   tableValue: string;
   valueType: ValueType;
+  explanation: string | undefined;
 }
+
+const anyPercentExplanation = "Best full-game NG time (Any%, Glitchless, or 100%) in each game, added together.";
+const glitchlessExplanation = "Best full-game Glitchless time in each game, added together.";
+const hundoExplanation = "Best 100% time in each game, added together.";
+
+const runnerTimesExplanation = "Overall Time represents how far you are from World Record across all categories. 0:00:00 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
+const runnerTanksExplanation = "Overall Rank represents how far you ar in ranks from World Record across all categories. 0 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
 
 const GIST_RAW_URL = "https://gist.githubusercontent.com/ShikenNuggets/3adaa36be92dfb82f43b951b91387c1a/raw/BatStats.json";
 
@@ -49,17 +57,17 @@ export default function Home() {
   const [selectedKey, setSelectedKey] = useState<DataKey>('any_times');
 
   const datasetConfigs: DatasetConfig[] = [
-    { key: 'any_times', buttonLabel: 'Any%', tableTitle: 'Overall Any% Times', tableValue: "Time", valueType: ValueType.Seconds },
-    { key: 'glitchless_times', buttonLabel: 'Glitchless', tableTitle: 'Overall Glitchless Times', tableValue: "Time", valueType: ValueType.Seconds  },
-    { key: 'hundo_times', buttonLabel: '100%', tableTitle: 'Overall 100% Times', tableValue: "Time", valueType: ValueType.Seconds  },
-    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', tableValue: "Mastery", valueType: ValueType.Percent },
-    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
-    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
-    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
-    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', tableValue: "Mastery", valueType: ValueType.Percent  },
-    { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', tableValue: "WRs", valueType: ValueType.Count  },
-    { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', tableValue: "Time", valueType: ValueType.Seconds  },
-    { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', tableValue: "Rank", valueType: ValueType.Count  },
+    { key: 'any_times', buttonLabel: 'Any%', tableTitle: 'Overall Any% Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: anyPercentExplanation },
+    { key: 'glitchless_times', buttonLabel: 'Glitchless', tableTitle: 'Overall Glitchless Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: glitchlessExplanation  },
+    { key: 'hundo_times', buttonLabel: '100%', tableTitle: 'Overall 100% Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: hundoExplanation  },
+    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
+    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined  },
+    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
+    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
+    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
+    { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', tableValue: "WRs", valueType: ValueType.Count, explanation: undefined  },
+    { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: runnerTimesExplanation  },
+    { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', tableValue: "Rank", valueType: ValueType.Count, explanation: runnerTanksExplanation  },
   ];
 
   useEffect(() => {
@@ -131,6 +139,7 @@ export default function Home() {
         tableKey="Runner"
         tableValue={datasetConfigs.find((b) => b.key === selectedKey)?.tableValue || 'Value'}
         valueType={datasetConfigs.find((b) => b.key === selectedKey)?.valueType}
+        explanation={datasetConfigs.find((b) => b.key === selectedKey)?.explanation || ''}
       />
       </div>
     </div>
