@@ -46,7 +46,7 @@ const glitchlessExplanation = "Best full-game Glitchless time in each game, adde
 const hundoExplanation = "Best 100% time in each game, added together.";
 
 const runnerTimesExplanation = "Overall Time represents how far you are from World Record across all categories. 0:00:00 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
-const runnerTanksExplanation = "Overall Rank represents how far you ar in ranks from World Record across all categories. 0 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
+const runnerTanksExplanation = "Overall Rank represents how far you are in ranks from World Record across all categories. 0 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
 
 const GIST_RAW_URL = "https://gist.githubusercontent.com/ShikenNuggets/3adaa36be92dfb82f43b951b91387c1a/raw/BatStats.json";
 
