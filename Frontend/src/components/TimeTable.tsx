@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ExplainerModal from './ExplainerModal';
 
 export enum ValueType{
   Seconds = "seconds",
@@ -18,6 +19,7 @@ interface TimeTableProps{
 	tableKey: string;
 	tableValue: string;
 	valueType: ValueType | undefined;
+	explanation: string | undefined;
 }
 
 function formatSeconds(seconds: number): string{
@@ -29,7 +31,16 @@ function formatSeconds(seconds: number): string{
   return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
 }
 
-const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue, valueType }) => {
+const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue, valueType, explanation }) => {
+	const [modalOpen, setModalOpen] = useState(false);
+	const openModal = () => {
+		setModalOpen(true);
+	}
+	
+	const closeModal = () => {
+		setModalOpen(false);
+	}
+
   const formatValue = (value: number) => {
     if (isNaN(value)){
       console.log("Value was NaN");
@@ -52,7 +63,13 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
 
 	return(
 		<div style={{ paddingTop: '25px' }}>
-			{title && <h2 style={{ textAlign: 'center', paddingBottom: '5px' }}>{title}</h2>}
+			{title && <h2 style={{ textAlign: 'center', paddingBottom: '5px' }}>
+				{title}
+				{explanation && (
+					<sup style={{ fontSize: '0.5em' }} title={explanation} onClick={openModal}>?</sup>
+				)}
+			</h2>
+			}
 			<table style={{ display: 'inline-block', tableLayout: 'fixed' }} border={1} cellPadding={8}>
 		<colgroup>
 			<col style={{ width: '10%' }} />
@@ -78,6 +95,9 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
           }
         </tbody>
       </table>
+      {modalOpen && explanation && (
+        <ExplainerModal title={title} explanation={explanation} onClose={closeModal} />
+      )}
 		</div>
 	)
 }
