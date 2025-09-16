@@ -13,7 +13,7 @@ const ExplainerModal : React.FC<ExplainerModalProps> = ({ title, explanation, on
 			<div className='modal-content' onClick={(e) => e.stopPropagation()}>
 				<button className='modal-close-button' onClick={onClose} aria-label='Close modal'>X</button>
 				<h1 style={{ paddingBottom: '10px', paddingRight: '25px' }}>{title}</h1>
-				<p>{explanation}</p>
+				<p style={{whiteSpace: 'pre-line'}}>{explanation}</p>
 			</div>
 		</div>
 		</>
