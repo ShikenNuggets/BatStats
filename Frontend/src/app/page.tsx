@@ -44,7 +44,8 @@ interface DatasetConfig {
 const anyPercentExplanation = "Best full-game NG time (Any%, Glitchless, or 100%) in each game, added together.";
 const glitchlessExplanation = "Best full-game Glitchless time in each game, added together.";
 const hundoExplanation = "Best 100% time in each game, added together.";
-
+const masteryExplanation = "Mastery Rank is a calculation of relative performance across all categories, relative to World Record at the top end and leaderboard average at the bottom end.\n\nFor each category, a percentage is calculated from World Record to Average (e.g. if you have WR, your value for that category is 100%. If your time is less than or equal to average, or you have no time, your value is 0%). These values are then weighted by the popularity of the category. For example, if the category has 40 runners out of a total of 100, then that category gets a 40% weighting in the overall calculation. The weighted values are all added together to determine your final Mastery value for each game.";
+const overallMasteryExplanation = masteryExplanation + "\n\nFor the overall mastery, your mastery ranks in each game are added together. All games have an equal 25% weighting.";
 const runnerTimesExplanation = "Overall Time represents how far you are from World Record across all categories. 0:00:00 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
 const runnerTanksExplanation = "Overall Rank represents how far you are in ranks from World Record across all categories. 0 would mean you have World Record in every category. Not having a run in a category is treated as equivalent to last place. Miscellaneous categories are excluded.";
 
@@ -60,11 +61,11 @@ export default function Home() {
     { key: 'any_times', buttonLabel: 'Any%', tableTitle: 'Overall Any% Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: anyPercentExplanation },
     { key: 'glitchless_times', buttonLabel: 'Glitchless', tableTitle: 'Overall Glitchless Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: glitchlessExplanation  },
     { key: 'hundo_times', buttonLabel: '100%', tableTitle: 'Overall 100% Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: hundoExplanation  },
-    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
-    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined  },
-    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
-    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
-    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: undefined },
+    { key: 'asylum_mastery', buttonLabel: 'Asylum', tableTitle: 'Asylum Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: masteryExplanation },
+    { key: 'city_mastery', buttonLabel: 'City', tableTitle: 'City Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: masteryExplanation  },
+    { key: 'origins_mastery', buttonLabel: 'Origins', tableTitle: 'Origins Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: masteryExplanation },
+    { key: 'knight_mastery', buttonLabel: 'Knight', tableTitle: 'Knight Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: masteryExplanation },
+    { key: 'overall_mastery', buttonLabel: 'Overall', tableTitle: 'Overall Mastery', tableValue: "Mastery", valueType: ValueType.Percent, explanation: overallMasteryExplanation },
     { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', tableValue: "WRs", valueType: ValueType.Count, explanation: undefined  },
     { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: runnerTimesExplanation  },
     { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', tableValue: "Rank", valueType: ValueType.Count, explanation: runnerTanksExplanation  },
