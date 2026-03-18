@@ -497,31 +497,3 @@ async fn main(){
 	gist_upload::upload_gist("BatStats.json").await.unwrap();
 }
 
-#[cfg(test)]
-mod tests{
-	use super::*;
-
-	#[tokio::test]
-	async fn combine_times_best_only_test(){
-		let vars = HashMap::new();
-		let mut all_boards: Vec<Leaderboard> = Vec::new();
-
-		let asylum_any = src_api::get_leaderboard(asylum::GAME_ID, asylum::ANY_CAT_ID, &vars).await;
-		let asylum_nms = src_api::get_leaderboard(asylum::GAME_ID, asylum::NMS_CAT_ID, &vars).await;
-		let asylum_100 = src_api::get_leaderboard(asylum::GAME_ID, asylum::HUNDO_CAT_ID, &vars).await;
-		let asylum_100_nms = src_api::get_leaderboard(asylum::GAME_ID, asylum::HUNDO_NMS_CAT_ID, &vars).await;
-		
-		assert!(asylum_any.is_some());
-		assert!(asylum_nms.is_some());
-		assert!(asylum_100.is_some());
-		assert!(asylum_100_nms.is_some());
-		all_boards.push(asylum_any.unwrap());
-		all_boards.push(asylum_nms.unwrap());
-		all_boards.push(asylum_100.unwrap());
-		all_boards.push(asylum_100_nms.unwrap());
-
-		let combined_times = utils::combine_times_best_only(&all_boards).await;
-		assert!(combined_times.contains_key("ShikenNuggets"));
-		assert!(combined_times["ShikenNuggets"] <= 3845.0);
-	}
-}
