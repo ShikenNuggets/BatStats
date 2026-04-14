@@ -15,7 +15,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, Serializer};
 use tokio::fs;
 
-use std::{collections::{HashMap, HashSet}, path::Path};
+use std::{collections::{HashMap, HashSet}, env, path::Path};
 
 
 use speedrun_api::src_api;
@@ -421,6 +421,13 @@ pub struct OutputType{
 
 #[tokio::main]
 async fn main(){
+	let key = "GITHUB_TOKEN";
+	match env::var(key) {
+		Ok(_) => (),
+		Err(env::VarError::NotPresent) => println!("You must set the GITHUB_TOKEN environment variable"),
+		Err(env::VarError::NotUnicode(_)) => println!("GITHUB_TOKEN envar exists, but is not valid Unicode"),
+	}
+
 	println!("Getting initial leaderboard data...");
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
 	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
