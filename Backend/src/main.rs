@@ -256,21 +256,21 @@ async fn get_all_any_percent_times() -> HashMap<String, f64>{
 }
 
 async fn get_all_glitchless_times() -> HashMap<String, f64>{
-	let asylum_any_times = asylum::get_best_glitchless_times().await;
-	let city_any_times = city::get_best_glitchless_times().await;
-	let origins_any_times = origins::get_best_glitchless_times().await;
-	let knight_any_times = knight::get_best_glitchless_times().await;
+	let asylum_glitchless_times = asylum::get_best_glitchless_times().await;
+	let city_glitchless_times = city::get_best_glitchless_times().await;
+	let origins_glitchless_times = origins::get_best_glitchless_times().await;
+	let knight_glitchless_times = knight::get_best_glitchless_times().await;
 
-	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
+	return combine_times(&asylum_glitchless_times, &city_glitchless_times, &origins_glitchless_times, &knight_glitchless_times).await;
 }
 
 async fn get_all_hundo_times() -> HashMap<String, f64>{
-	let asylum_any_times = asylum::get_best_hundo_times().await;
-	let city_any_times = city::get_best_hundo_times().await;
-	let origins_any_times = origins::get_best_hundo_times().await;
-	let knight_any_times = knight::get_best_hundo_times().await;
+	let asylum_hundo_times = asylum::get_best_hundo_times().await;
+	let city_hundo_times = city::get_best_hundo_times().await;
+	let origins_hundo_times = origins::get_best_hundo_times().await;
+	let knight_hundo_times = knight::get_best_hundo_times().await;
 
-	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
+	return combine_times(&asylum_hundo_times, &city_hundo_times, &origins_hundo_times, &knight_hundo_times).await;
 }
 
 fn merge_mastery(mastery: &HashMap<String, f64>, overall_mastery: &mut HashMap<String, f64>, divisor: f64){
