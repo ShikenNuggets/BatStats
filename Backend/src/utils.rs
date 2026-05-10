@@ -122,7 +122,10 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
 			continue;
 		}
 
-		run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
+		let runner_name = runner_name.unwrap();
+		if !run_times.contains_key(&runner_name) || run_times[&runner_name] > run.run.times.primary_t{
+			run_times.insert(runner_name, run.run.times.primary_t);
+		}
 	}
 
 	return run_times;
