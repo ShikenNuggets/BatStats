@@ -15,6 +15,12 @@ type DataPair = {
   value: number;
 };
 
+type WorldRecordInfo = {
+  category_name: string;
+  player_name: string;
+  date: Date | string;
+};
+
 interface BatStatsData {
   meta: Metadata;
   world_records: DataPair[];
@@ -28,6 +34,7 @@ interface BatStatsData {
   origins_mastery: DataPair[];
   knight_mastery: DataPair[];
   overall_mastery: DataPair[];
+  oldest_world_records: WorldRecordInfo[];
 }
 
 type DataKey = keyof BatStatsData;
@@ -69,6 +76,7 @@ export default function Home() {
     { key: 'world_records', buttonLabel: 'WRs', tableTitle: '# of World Records', tableValue: "WRs", valueType: ValueType.Count, explanation: undefined  },
     { key: 'runner_times', buttonLabel: 'Times', tableTitle: 'Overall Leaderboard Times', tableValue: "Time", valueType: ValueType.Seconds, explanation: runnerTimesExplanation  },
     { key: 'runner_ranks', buttonLabel: 'Ranks', tableTitle: 'Overall Leaderboard Ranks', tableValue: "Rank", valueType: ValueType.Count, explanation: runnerTanksExplanation  },
+    { key: 'oldest_world_records', buttonLabel: 'Oldest WRs', tableTitle: 'Oldest World Records', tableValue: "Date", valueType: ValueType.Count, explanation: undefined  },
   ];
 
   useEffect(() => {
@@ -135,12 +143,13 @@ export default function Home() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>
       <TimeTable
-        data={data[selectedKey] as DataPair[]}
+        data={data[selectedKey] as DataPair[] | WorldRecordInfo[]}
         title={datasetConfigs.find((b) => b.key === selectedKey)?.tableTitle || 'Data'}
         tableKey="Runner"
         tableValue={datasetConfigs.find((b) => b.key === selectedKey)?.tableValue || 'Value'}
         valueType={datasetConfigs.find((b) => b.key === selectedKey)?.valueType}
         explanation={datasetConfigs.find((b) => b.key === selectedKey)?.explanation || ''}
+        dataType={selectedKey === 'oldest_world_records' ? 'world_records' : 'stats'}
       />
       </div>
     </div>
