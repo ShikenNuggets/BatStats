@@ -85,13 +85,21 @@ const TimeTable: React.FC<TimeTableProps> = ({ data, title, tableKey, tableValue
         </thead>
         <tbody>
           {
-            data.map(({ rank, player, value }, index) => (
-              <tr key={index}>
-                <td style={{ textAlign: 'center' }}>{rank}</td>
-                <td style={{ textAlign: 'left', padding: '5px' }}>{player}</td>
-                <td style={{ textAlign: 'center', padding: '5px' }}>{formatValue(value)}</td>
+            data && data.length > 0 ? (
+              data.map(({ rank, player, value }, index) => (
+                <tr key={index}>
+                  <td style={{ textAlign: 'center' }}>{rank}</td>
+                  <td style={{ textAlign: 'left', padding: '5px' }}>{player}</td>
+                  <td style={{ textAlign: 'center', padding: '5px' }}>{formatValue(value)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', padding: '10px', paddingLeft: '100px', paddingRight: '100px' }}>
+                  No data available.
+                </td>
               </tr>
-            ))
+            )
           }
         </tbody>
       </table>
