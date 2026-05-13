@@ -18,6 +18,11 @@ pub async fn upload_gist(file_path: &str) -> Result<(), Box<dyn std::error::Erro
 	let github_token = env::var("GITHUB_TOKEN")
 		.expect("GITHUB_TOKEN environment variable is needed for gist upload");
 
+	if github_token.is_empty(){
+		println!("GITHUB_TOKEN is empty, cannot upload the gist!");
+		return Err(("Empty GITHUB_TOKEN").into());
+	}
+
 	let gist_id = "3adaa36be92dfb82f43b951b91387c1a";
 	let gist_file = "BatStats.json";
 
