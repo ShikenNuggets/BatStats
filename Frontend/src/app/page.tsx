@@ -120,25 +120,66 @@ export default function Home() {
 
       <h4 style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>Last Updated: {date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</h4>
 
-      {/* Buttons */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>
-        {datasetConfigs.map((btn) => (
-          <button
-            key={btn.key}
-            onClick={() => setSelectedKey(btn.key)}
-            style={{
-              padding: '10px 15px',
-              cursor: 'pointer',
-              backgroundColor: selectedKey === btn.key ? '#444' : '#eee',
-              color: selectedKey === btn.key ? 'white' : 'black',
-              border: '1px solid #ccc',
-              borderRadius: '5px',
-              transition: 'background-color 0.2s',
-            }}
-          >
-            {btn.buttonLabel}
-          </button>
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', margin: '20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+          {datasetConfigs.slice(0, 3).map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setSelectedKey(btn.key)}
+              style={{
+                padding: '10px 15px',
+                cursor: 'pointer',
+                backgroundColor: selectedKey === btn.key ? '#444' : '#eee',
+                color: selectedKey === btn.key ? 'white' : 'black',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                transition: 'background-color 0.2s',
+              }}
+            >
+              {btn.buttonLabel}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+          {datasetConfigs.slice(3, 8).map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setSelectedKey(btn.key)}
+              style={{
+                padding: '10px 15px',
+                cursor: 'pointer',
+                backgroundColor: selectedKey === btn.key ? '#444' : '#eee',
+                color: selectedKey === btn.key ? 'white' : 'black',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                transition: 'background-color 0.2s',
+              }}
+            >
+              {btn.buttonLabel}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+          {datasetConfigs.slice(8).map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setSelectedKey(btn.key)}
+              style={{
+                padding: '10px 15px',
+                cursor: 'pointer',
+                backgroundColor: selectedKey === btn.key ? '#444' : '#eee',
+                color: selectedKey === btn.key ? 'white' : 'black',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+                transition: 'background-color 0.2s',
+              }}
+            >
+              {btn.buttonLabel}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', gap: '10px', margin: '20px 0' }}>
