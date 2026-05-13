@@ -301,6 +301,52 @@ async fn get_overall_mastery() -> HashMap<String, f64>{
 	return overall_mastery;
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WorldRecordInfo{
+	pub player_name: String,
+	pub category_name: String,
+	pub date: DateTime<Utc>
+}
+
+async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldRecordInfo>{
+	let mut world_records: Vec<WorldRecordInfo> = Vec::new();
+
+	for lb in leaderboards {
+		let wr_run = lb.runs.first();
+		if !wr_run.is_some(){
+			continue;
+		}
+		let wr_run = wr_run.unwrap();
+
+		let player = &wr_run.run.players.first();
+		if !player.is_some(){
+			continue;
+		}
+
+		let player_name = get_player_name(player.unwrap()).await;
+		if player_name.is_none(){
+			continue;
+		}
+		let player_name = player_name.unwrap();
+
+		let category_name = utils::get_full_category_name(&lb).await;
+
+		let date = match wr_run.run.date {
+			Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(naive_date.and_hms_opt(0, 0, 0).unwrap(), Utc),
+			None => continue,
+		};
+
+		world_records.push(WorldRecordInfo {
+			player_name: player_name,
+			category_name,
+			date,
+		});
+	}
+
+	world_records.sort_by_key(|wr| wr.date);
+	return world_records;
+}
+
 enum Ordering{
 	LowerIsBetter,
 	HigherIsBetter
@@ -417,6 +463,9 @@ pub struct OutputType{
 
 	#[serde(serialize_with = "as_json_string")]
 	pub overall_mastery: String,
+
+	#[serde(serialize_with = "as_json_string")]
+	pub oldest_world_records: String,
 }
 
 #[tokio::main]
@@ -487,6 +536,10 @@ async fn main(){
 	println!("Processing overall mastery ranks...");
 	let overall_mastery = get_overall_mastery().await;
 	output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
+
+	println!("Processing oldest world records...");
+	let oldest_world_records = get_oldest_world_records(&all_main_boards).await;
+	output_data.oldest_world_records = serde_json::to_string(&oldest_world_records).unwrap();
 
 	let meta_data = MetaData { date: Utc::now() };
 	output_data.meta = serde_json::to_string(&meta_data).unwrap();
