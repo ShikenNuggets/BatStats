@@ -195,3 +195,70 @@ pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap
 	
 	return combined_times;
 }
+
+pub async fn get_game_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
+	let game = src_api::get_game(&leaderboard.game).await;
+	if game.is_none(){
+		return "Unknown Game".to_string();
+	}
+
+	let game_name = game.unwrap().names.international;
+	if game_name.contains("Asylum"){
+		return "Asylum".to_string();
+	} else if game_name.contains("City") {
+		return "City".to_string();
+	} else if game_name.contains("Origins") {
+		return "Origins".to_string();
+	} else if game_name.contains("Knight") {
+		return "Knight".to_string();
+	}
+
+	return game_name;
+}
+
+pub async fn get_category_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
+	let category = src_api::get_category(&leaderboard.category).await;
+	if category.is_none(){
+		return "Unknown Category".to_string();
+	}
+
+	return category.unwrap().name;
+}
+
+pub async fn get_subcategory_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
+	let mut subcategory_parts: Vec<String> = Vec::new();
+	
+	for (var_id, value_id) in &leaderboard.values {
+		let var = src_api::get_variable(var_id).await;
+		if var.is_none() {
+			continue;
+		}
+		
+		let var = var.unwrap();
+		if !var.is_subcategory {
+			continue;
+		}
+		
+		if let Some(value) = var.values.values.get(value_id) {
+			subcategory_parts.push(value.label.clone());
+		}
+	}
+	
+	if subcategory_parts.is_empty() {
+		return "".to_string();
+	}
+	
+	return subcategory_parts.join(", ");
+}
+
+pub async fn get_full_category_name(leaderboard: &Leaderboard) -> String{
+	let game_name = get_game_name_from_leaderboard(leaderboard).await;
+	let category_name = get_category_name_from_leaderboard(leaderboard).await;
+	let subcategory_name = get_subcategory_name_from_leaderboard(leaderboard).await;
+
+	if subcategory_name.is_empty(){
+		return format!("{} - {}", game_name, category_name);
+	}
+
+	return format!("{} - {} ({})", game_name, category_name, subcategory_name);
+}
