@@ -470,17 +470,29 @@ pub struct OutputType{
 
 #[tokio::main]
 async fn main(){
-	let key = "GITHUB_TOKEN";
-	match env::var(key) {
-		Ok(_) => (),
-		Err(env::VarError::NotPresent) => println!("You must set the GITHUB_TOKEN environment variable"),
-		Err(env::VarError::NotUnicode(_)) => println!("GITHUB_TOKEN envar exists, but is not valid Unicode"),
-	}
+	let skip_upload = std::env::args().any(|arg| arg == "--skip-upload");
 
-	// Validate the GitHub token by trying to read the gist
-	if let Err(e) = gist_upload::validate_github_token().await {
-		println!("GitHub token was invalid or did not have access to the gist: {}", e);
-		return;
+	if !skip_upload {
+		let key = "GITHUB_TOKEN";
+		match env::var(key) {
+			Ok(_) => (),
+			Err(env::VarError::NotPresent) => {
+				println!("You must set the GITHUB_TOKEN environment variable");
+				return;
+			},
+			Err(env::VarError::NotUnicode(_)) => {
+				println!("GITHUB_TOKEN envar exists, but is not valid Unicode");
+				return;
+			},
+		}
+
+		// Validate the GitHub token by trying to read the gist
+		if let Err(e) = gist_upload::validate_github_token().await {
+			println!("GitHub token was invalid or did not have access to the gist: {}", e);
+			return;
+		}
+	} else {
+		println!("Gist upload is disabled (--skip-upload flag is set)");
 	}
 
 	println!("Getting initial leaderboard data...");
@@ -560,6 +572,10 @@ async fn main(){
 		eprintln!("Could not write to file! Error: {}", e);
 	}
 
-	gist_upload::upload_gist("BatStats.json").await.unwrap();
+	if !skip_upload {
+		gist_upload::upload_gist("BatStats.json").await.unwrap();
+	} else {
+		println!("Skipping gist upload (--skip-upload flag is set)");
+	}
 }
 
