@@ -477,6 +477,12 @@ async fn main(){
 		Err(env::VarError::NotUnicode(_)) => println!("GITHUB_TOKEN envar exists, but is not valid Unicode"),
 	}
 
+	// Validate the GitHub token by trying to read the gist
+	if let Err(e) = gist_upload::validate_github_token().await {
+		println!("GitHub token was invalid or did not have access to the gist: {}", e);
+		return;
+	}
+
 	println!("Getting initial leaderboard data...");
 	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
 	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
