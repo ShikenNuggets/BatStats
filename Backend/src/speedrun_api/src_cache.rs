@@ -3,7 +3,13 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 
-use crate::speedrun_api::{cache::Cache, types::{category::Category, game::Game, leaderboard::Leaderboard, run::Run, user::User, variable::Variable}};
+use crate::speedrun_api::{
+    cache::Cache,
+    types::{
+        category::Category, game::Game, leaderboard::Leaderboard, run::Run, user::User,
+        variable::Variable,
+    },
+};
 
 pub static CATEGORY_CACHE: Lazy<Cache<Category>> = Lazy::new(Cache::new);
 pub static GAME_CACHE: Lazy<Cache<Game>> = Lazy::new(Cache::new);

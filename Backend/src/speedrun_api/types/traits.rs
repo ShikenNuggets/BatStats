@@ -1,5 +1,5 @@
 #![allow(dead_code)]
 
-pub trait Cacheable{
-	fn key(&self) -> String;
+pub trait Cacheable {
+    fn key(&self) -> String;
 }

@@ -4,22 +4,22 @@ use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum SrcLinkType{
-	#[serde(rename = "self")]
-	Self_,
+pub enum SrcLinkType {
+    #[serde(rename = "self")]
+    Self_,
 
-	Game,
-	Category,
-	Variables,
-	Records,
-	Runs,
-	Leaderboard
+    Game,
+    Category,
+    Variables,
+    Records,
+    Runs,
+    Leaderboard,
 }
 
 #[derive(Clone, Deserialize)]
-pub struct SrcLink{
-	#[serde(rename = "rel")]
-	pub link_type : SrcLinkType,
+pub struct SrcLink {
+    #[serde(rename = "rel")]
+    pub link_type: SrcLinkType,
 
-	pub uri: String
+    pub uri: String,
 }

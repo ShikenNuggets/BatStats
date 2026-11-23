@@ -1,7 +1,7 @@
 mod asylum;
 mod city;
-mod origins;
 mod knight;
+mod origins;
 
 mod gist_upload;
 mod mastery;
@@ -15,382 +15,437 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, Serializer};
 use tokio::fs;
 
-use std::{collections::{HashMap, HashSet}, env, path::Path};
-
+use std::{
+    collections::{HashMap, HashSet},
+    env,
+    path::Path,
+};
 
 use speedrun_api::src_api;
 
-use crate::speedrun_api::types::{leaderboard::Leaderboard, run::{RunPlayer, RunPlayerType}};
+use crate::speedrun_api::types::{
+    leaderboard::Leaderboard,
+    run::{RunPlayer, RunPlayerType},
+};
 
-async fn get_player_name(player : &RunPlayer) -> Option<String>{
-	if let RunPlayerType::Guest = player.rel{
-		return player.name.clone();
-	}
+async fn get_player_name(player: &RunPlayer) -> Option<String> {
+    if let RunPlayerType::Guest = player.rel {
+        return player.name.clone();
+    }
 
-	if player.id.is_none(){
-		return player.name.clone();
-	}
+    if player.id.is_none() {
+        return player.name.clone();
+    }
 
-	let user = src_api::get_user(&player.id.clone().unwrap()).await;
-	if user.is_none(){
-		return None;
-	}
+    let user = src_api::get_user(&player.id.clone().unwrap()).await;
+    if user.is_none() {
+        return None;
+    }
 
-	return Some(user.unwrap().names.international);
+    return Some(user.unwrap().names.international);
 }
 
-async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32>{
-	let mut world_records: HashMap<String, i32> = HashMap::new();
-	for lb in leaderboards{
-		let wr_run = lb.runs.first();
-		if !wr_run.is_some(){
-			continue;
-		}
+async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32> {
+    let mut world_records: HashMap<String, i32> = HashMap::new();
+    for lb in leaderboards {
+        let wr_run = lb.runs.first();
+        if !wr_run.is_some() {
+            continue;
+        }
 
-		let player = &wr_run.unwrap().run.players.first();
-		if !player.is_some(){
-			continue;
-		}
+        let player = &wr_run.unwrap().run.players.first();
+        if !player.is_some() {
+            continue;
+        }
 
-		let player_name = get_player_name(player.unwrap()).await;
-		if player_name.is_none(){
-			continue;
-		}
+        let player_name = get_player_name(player.unwrap()).await;
+        if player_name.is_none() {
+            continue;
+        }
 
-		let player_name = player_name.unwrap();
+        let player_name = player_name.unwrap();
 
-		if let Some(value) = world_records.get_mut(&player_name){
-			*value += 1;
-		}else if !world_records.contains_key(&player_name){
-			world_records.insert(player_name, 1);
-		}
-	}
+        if let Some(value) = world_records.get_mut(&player_name) {
+            *value += 1;
+        } else if !world_records.contains_key(&player_name) {
+            world_records.insert(player_name, 1);
+        }
+    }
 
-	return world_records;
+    return world_records;
 }
 
-async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String>{
-	let mut runners: HashSet<String> = HashSet::new();
+async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
+    let mut runners: HashSet<String> = HashSet::new();
 
-	for leaderboard in leaderboards{
-		for run in &leaderboard.runs{
-			for player in &run.run.players{
-				let player_name = get_player_name(&player).await;
-				if player_name.is_none(){
-					continue;
-				}
-				runners.insert(player_name.unwrap());
-			}
-		}
-	}
+    for leaderboard in leaderboards {
+        for run in &leaderboard.runs {
+            for player in &run.run.players {
+                let player_name = get_player_name(&player).await;
+                if player_name.is_none() {
+                    continue;
+                }
+                runners.insert(player_name.unwrap());
+            }
+        }
+    }
 
-	return runners;
+    return runners;
 }
 
-fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64>{
-	if leaderboard.runs.is_empty(){
-		return None;
-	}
+fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
+    if leaderboard.runs.is_empty() {
+        return None;
+    }
 
-	return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
+    return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
 }
 
-fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
-	if leaderboard.runs.is_empty(){
-		return None;
-	}
+fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
+    if leaderboard.runs.is_empty() {
+        return None;
+    }
 
-	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+    return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
 }
 
-fn get_last_place(leaderboard: &Leaderboard) -> i32{
-	if leaderboard.runs.is_empty(){
-		return 0;
-	}
-	
-	return leaderboard.runs.last().unwrap().place.into();
+fn get_last_place(leaderboard: &Leaderboard) -> i32 {
+    if leaderboard.runs.is_empty() {
+        return 0;
+    }
+
+    return leaderboard.runs.last().unwrap().place.into();
 }
 
-async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
-	let mut run_times: HashMap<String, f64> = HashMap::new();
+async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64> {
+    let mut run_times: HashMap<String, f64> = HashMap::new();
 
-	let fastest_time = get_fastest_time(&leaderboard);
-	let slowest_time = get_slowest_time(&leaderboard);
+    let fastest_time = get_fastest_time(&leaderboard);
+    let slowest_time = get_slowest_time(&leaderboard);
 
-	if fastest_time.is_none() || slowest_time.is_none(){
-		return run_times;
-	}
-	
-	for run in &leaderboard.runs{
-		let runner_name = get_player_name(run.run.players.first().unwrap()).await;
-		if runner_name.is_none(){
-			continue;
-		}
+    if fastest_time.is_none() || slowest_time.is_none() {
+        return run_times;
+    }
 
-		run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
-	}
+    for run in &leaderboard.runs {
+        let runner_name = get_player_name(run.run.players.first().unwrap()).await;
+        if runner_name.is_none() {
+            continue;
+        }
 
-	return run_times;
+        run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
+    }
+
+    return run_times;
 }
 
-async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32>{
-	let mut run_ranks: HashMap<String, i32> = HashMap::new();
+async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32> {
+    let mut run_ranks: HashMap<String, i32> = HashMap::new();
 
-	let last_place = get_last_place(leaderboard);
-	if last_place <= 0{
-		return run_ranks;
-	}
-	
-	for run in &leaderboard.runs{
-		let runner_name = get_player_name(run.run.players.first().unwrap()).await;
-		if runner_name.is_none(){
-			continue;
-		}
+    let last_place = get_last_place(leaderboard);
+    if last_place <= 0 {
+        return run_ranks;
+    }
 
-		let rank_as_i32: i32 = run.place.into();
-		run_ranks.insert(runner_name.unwrap(), rank_as_i32 - 1);
-	}
+    for run in &leaderboard.runs {
+        let runner_name = get_player_name(run.run.players.first().unwrap()).await;
+        if runner_name.is_none() {
+            continue;
+        }
 
-	return run_ranks;
+        let rank_as_i32: i32 = run.place.into();
+        run_ranks.insert(runner_name.unwrap(), rank_as_i32 - 1);
+    }
+
+    return run_ranks;
 }
 
-async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_wr: bool) -> HashMap<String, f64>{
-	let mut runner_times: HashMap<String, f64> = HashMap::new();
+async fn get_total_runner_times(
+    leaderboards: &Vec<Leaderboard>,
+    subtract_from_wr: bool,
+) -> HashMap<String, f64> {
+    let mut runner_times: HashMap<String, f64> = HashMap::new();
 
-	let all_runners = get_all_runners(leaderboards).await;
-	for runner in &all_runners{
-		runner_times.insert(runner.to_string(), 0.0);
-	}
+    let all_runners = get_all_runners(leaderboards).await;
+    for runner in &all_runners {
+        runner_times.insert(runner.to_string(), 0.0);
+    }
 
-	for leaderboard in leaderboards{
-		let api_category = src_api::get_category(&leaderboard.category).await;
-		if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous{
-			continue;
-		}
+    for leaderboard in leaderboards {
+        let api_category = src_api::get_category(&leaderboard.category).await;
+        if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous {
+            continue;
+        }
 
-		let fastest_time = get_fastest_time(&leaderboard);
-		let slowest_time = get_slowest_time(&leaderboard);
-		let times = get_runner_times_map(leaderboard).await;
+        let fastest_time = get_fastest_time(&leaderboard);
+        let slowest_time = get_slowest_time(&leaderboard);
+        let times = get_runner_times_map(leaderboard).await;
 
-		if fastest_time.is_none() || slowest_time.is_none() || times.is_empty(){
-			println!("Something went wrong for leaderboard of category {}", leaderboard.category);
-			continue;
-		}
+        if fastest_time.is_none() || slowest_time.is_none() || times.is_empty() {
+            println!(
+                "Something went wrong for leaderboard of category {}",
+                leaderboard.category
+            );
+            continue;
+        }
 
-		let fastest_time = fastest_time.unwrap();
-		let slowest_time = slowest_time.unwrap() - fastest_time;
+        let fastest_time = fastest_time.unwrap();
+        let slowest_time = slowest_time.unwrap() - fastest_time;
 
-		for runner in &all_runners{
-			let mut time_to_add = slowest_time;
-			if times.contains_key(runner){
-				time_to_add = times[runner];
-				if subtract_from_wr{
-					time_to_add -= fastest_time;
-				}
-			}
+        for runner in &all_runners {
+            let mut time_to_add = slowest_time;
+            if times.contains_key(runner) {
+                time_to_add = times[runner];
+                if subtract_from_wr {
+                    time_to_add -= fastest_time;
+                }
+            }
 
-			runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
-		}
-	}
+            runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
+        }
+    }
 
-	return runner_times;
+    return runner_times;
 }
 
-async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32>{
-	let mut runner_ranks: HashMap<String, i32> = HashMap::new();
+async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32> {
+    let mut runner_ranks: HashMap<String, i32> = HashMap::new();
 
-	let all_runners = get_all_runners(leaderboards).await;
-	for runner in &all_runners{
-		runner_ranks.insert(runner.to_string(), 0);
-	}
+    let all_runners = get_all_runners(leaderboards).await;
+    for runner in &all_runners {
+        runner_ranks.insert(runner.to_string(), 0);
+    }
 
-	for leaderboard in leaderboards{
-		let api_category = src_api::get_category(&leaderboard.category).await;
-		if api_category.is_none() || api_category.unwrap().miscellaneous{
-			continue;
-		}
+    for leaderboard in leaderboards {
+        let api_category = src_api::get_category(&leaderboard.category).await;
+        if api_category.is_none() || api_category.unwrap().miscellaneous {
+            continue;
+        }
 
-		let last_place = get_last_place(leaderboard);
-		let ranks = get_runner_ranks_map(leaderboard).await;
+        let last_place = get_last_place(leaderboard);
+        let ranks = get_runner_ranks_map(leaderboard).await;
 
-		if last_place <= 0 || ranks.is_empty(){
-			println!("Something went wrong for leaderboard of category {}", leaderboard.category);
-			continue;
-		}
+        if last_place <= 0 || ranks.is_empty() {
+            println!(
+                "Something went wrong for leaderboard of category {}",
+                leaderboard.category
+            );
+            continue;
+        }
 
-		for runner in &all_runners{
-			let mut rank_to_add = last_place;
-			if ranks.contains_key(runner){
-				rank_to_add = ranks[runner];
-			}
+        for runner in &all_runners {
+            let mut rank_to_add = last_place;
+            if ranks.contains_key(runner) {
+                rank_to_add = ranks[runner];
+            }
 
-			runner_ranks.insert(runner.to_string(), runner_ranks[runner] + rank_to_add);
-		}
-	}
+            runner_ranks.insert(runner.to_string(), runner_ranks[runner] + rank_to_add);
+        }
+    }
 
-	return runner_ranks;
+    return runner_ranks;
 }
 
-async fn combine_times(asylum_times: &HashMap<String, f64>, city_times: &HashMap<String, f64>, origins_times: &HashMap<String, f64>, knight_times: &HashMap<String, f64>) -> HashMap<String, f64>{
-	let mut final_times: HashMap<String, f64> = HashMap::new();
+async fn combine_times(
+    asylum_times: &HashMap<String, f64>,
+    city_times: &HashMap<String, f64>,
+    origins_times: &HashMap<String, f64>,
+    knight_times: &HashMap<String, f64>,
+) -> HashMap<String, f64> {
+    let mut final_times: HashMap<String, f64> = HashMap::new();
 
-	for time in asylum_times{
-		if !city_times.contains_key(time.0) || !origins_times.contains_key(time.0) || !knight_times.contains_key(time.0){
-			continue;
-		}
+    for time in asylum_times {
+        if !city_times.contains_key(time.0)
+            || !origins_times.contains_key(time.0)
+            || !knight_times.contains_key(time.0)
+        {
+            continue;
+        }
 
-		let time_val = time.1 + city_times[time.0] + origins_times[time.0] + knight_times[time.0];
-		final_times.insert(time.0.to_string(), time_val);
-	}
+        let time_val = time.1 + city_times[time.0] + origins_times[time.0] + knight_times[time.0];
+        final_times.insert(time.0.to_string(), time_val);
+    }
 
-	return final_times;
+    return final_times;
 }
 
-async fn get_all_any_percent_times() -> HashMap<String, f64>{
-	let asylum_any_times = asylum::get_best_any_percent_times().await;
-	let city_any_times = city::get_best_any_percent_times().await;
-	let origins_any_times = origins::get_best_any_percent_times().await;
-	let knight_any_times = knight::get_best_any_percent_times().await;
+async fn get_all_any_percent_times() -> HashMap<String, f64> {
+    let asylum_any_times = asylum::get_best_any_percent_times().await;
+    let city_any_times = city::get_best_any_percent_times().await;
+    let origins_any_times = origins::get_best_any_percent_times().await;
+    let knight_any_times = knight::get_best_any_percent_times().await;
 
-	return combine_times(&asylum_any_times, &city_any_times, &origins_any_times, &knight_any_times).await;
+    return combine_times(
+        &asylum_any_times,
+        &city_any_times,
+        &origins_any_times,
+        &knight_any_times,
+    )
+    .await;
 }
 
-async fn get_all_glitchless_times() -> HashMap<String, f64>{
-	let asylum_glitchless_times = asylum::get_best_glitchless_times().await;
-	let city_glitchless_times = city::get_best_glitchless_times().await;
-	let origins_glitchless_times = origins::get_best_glitchless_times().await;
-	let knight_glitchless_times = knight::get_best_glitchless_times().await;
+async fn get_all_glitchless_times() -> HashMap<String, f64> {
+    let asylum_glitchless_times = asylum::get_best_glitchless_times().await;
+    let city_glitchless_times = city::get_best_glitchless_times().await;
+    let origins_glitchless_times = origins::get_best_glitchless_times().await;
+    let knight_glitchless_times = knight::get_best_glitchless_times().await;
 
-	return combine_times(&asylum_glitchless_times, &city_glitchless_times, &origins_glitchless_times, &knight_glitchless_times).await;
+    return combine_times(
+        &asylum_glitchless_times,
+        &city_glitchless_times,
+        &origins_glitchless_times,
+        &knight_glitchless_times,
+    )
+    .await;
 }
 
-async fn get_all_hundo_times() -> HashMap<String, f64>{
-	let asylum_hundo_times = asylum::get_best_hundo_times().await;
-	let city_hundo_times = city::get_best_hundo_times().await;
-	let origins_hundo_times = origins::get_best_hundo_times().await;
-	let knight_hundo_times = knight::get_best_hundo_times().await;
+async fn get_all_hundo_times() -> HashMap<String, f64> {
+    let asylum_hundo_times = asylum::get_best_hundo_times().await;
+    let city_hundo_times = city::get_best_hundo_times().await;
+    let origins_hundo_times = origins::get_best_hundo_times().await;
+    let knight_hundo_times = knight::get_best_hundo_times().await;
 
-	return combine_times(&asylum_hundo_times, &city_hundo_times, &origins_hundo_times, &knight_hundo_times).await;
+    return combine_times(
+        &asylum_hundo_times,
+        &city_hundo_times,
+        &origins_hundo_times,
+        &knight_hundo_times,
+    )
+    .await;
 }
 
-fn merge_mastery(mastery: &HashMap<String, f64>, overall_mastery: &mut HashMap<String, f64>, divisor: f64){
-	for entry in mastery{
-		let name = entry.0.clone();
-		let value = entry.1 / divisor;
-		if overall_mastery.contains_key(&name){
-			let cur_val = overall_mastery[&name];
-			overall_mastery.insert(name,  cur_val + value);
-		}else{
-			overall_mastery.insert(name, value);
-		}
-	}
+fn merge_mastery(
+    mastery: &HashMap<String, f64>,
+    overall_mastery: &mut HashMap<String, f64>,
+    divisor: f64,
+) {
+    for entry in mastery {
+        let name = entry.0.clone();
+        let value = entry.1 / divisor;
+        if overall_mastery.contains_key(&name) {
+            let cur_val = overall_mastery[&name];
+            overall_mastery.insert(name, cur_val + value);
+        } else {
+            overall_mastery.insert(name, value);
+        }
+    }
 }
 
-async fn get_overall_mastery() -> HashMap<String, f64>{
-	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
+async fn get_overall_mastery() -> HashMap<String, f64> {
+    let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
+    let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
+    let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
+    let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
 
-	let mut overall_mastery = HashMap::new();
-	merge_mastery(&asylum_mastery, &mut overall_mastery, 4.0);
-	merge_mastery(&city_mastery, &mut overall_mastery, 4.0);
-	merge_mastery(&origins_mastery, &mut overall_mastery, 4.0);
-	merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
+    let mut overall_mastery = HashMap::new();
+    merge_mastery(&asylum_mastery, &mut overall_mastery, 4.0);
+    merge_mastery(&city_mastery, &mut overall_mastery, 4.0);
+    merge_mastery(&origins_mastery, &mut overall_mastery, 4.0);
+    merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
 
-	return overall_mastery;
+    return overall_mastery;
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct WorldRecordInfo{
-	pub player_name: String,
-	pub category_name: String,
-	pub date: DateTime<Utc>
+pub struct WorldRecordInfo {
+    pub player_name: String,
+    pub category_name: String,
+    pub date: DateTime<Utc>,
 }
 
-async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldRecordInfo>{
-	let mut world_records: Vec<WorldRecordInfo> = Vec::new();
+async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldRecordInfo> {
+    let mut world_records: Vec<WorldRecordInfo> = Vec::new();
 
-	for lb in leaderboards {
-		let wr_run = lb.runs.first();
-		if !wr_run.is_some(){
-			continue;
-		}
-		let wr_run = wr_run.unwrap();
+    for lb in leaderboards {
+        let wr_run = lb.runs.first();
+        if !wr_run.is_some() {
+            continue;
+        }
+        let wr_run = wr_run.unwrap();
 
-		let player = &wr_run.run.players.first();
-		if !player.is_some(){
-			continue;
-		}
+        let player = &wr_run.run.players.first();
+        if !player.is_some() {
+            continue;
+        }
 
-		let player_name = get_player_name(player.unwrap()).await;
-		if player_name.is_none(){
-			continue;
-		}
-		let player_name = player_name.unwrap();
+        let player_name = get_player_name(player.unwrap()).await;
+        if player_name.is_none() {
+            continue;
+        }
+        let player_name = player_name.unwrap();
 
-		let category_name = utils::get_full_category_name(&lb).await;
+        let category_name = utils::get_full_category_name(&lb).await;
 
-		let date = match wr_run.run.date {
-			Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(naive_date.and_hms_opt(0, 0, 0).unwrap(), Utc),
-			None => continue,
-		};
+        let date = match wr_run.run.date {
+            Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(
+                naive_date.and_hms_opt(0, 0, 0).unwrap(),
+                Utc,
+            ),
+            None => continue,
+        };
 
-		world_records.push(WorldRecordInfo {
-			player_name: player_name,
-			category_name,
-			date,
-		});
-	}
+        world_records.push(WorldRecordInfo {
+            player_name: player_name,
+            category_name,
+            date,
+        });
+    }
 
-	world_records.sort_by_key(|wr| wr.date);
-	return world_records;
+    world_records.sort_by_key(|wr| wr.date);
+    return world_records;
 }
 
-enum Ordering{
-	LowerIsBetter,
-	HigherIsBetter
+enum Ordering {
+    LowerIsBetter,
+    HigherIsBetter,
 }
 
-fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) -> Vec<(String, T)>{
-	let mut vec: Vec<(String, T)> = map.into_iter().collect();
-	vec.sort_by(|a, b| {
-		if let Ordering::LowerIsBetter = order{
-			a.1.partial_cmp(&b.1).unwrap()
-		}else{
-			b.1.partial_cmp(&a.1).unwrap()
-		}
-	});
+fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) -> Vec<(String, T)> {
+    let mut vec: Vec<(String, T)> = map.into_iter().collect();
+    vec.sort_by(|a, b| {
+        if let Ordering::LowerIsBetter = order {
+            a.1.partial_cmp(&b.1).unwrap()
+        } else {
+            b.1.partial_cmp(&a.1).unwrap()
+        }
+    });
 
-	return vec;
+    return vec;
 }
 
-fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry>{
-	let mut result = Vec::with_capacity(data.len());
-	let mut prev_value: Option<f64> = None;
-	let mut prev_rank: i64 = 0;
+fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry> {
+    let mut result = Vec::with_capacity(data.len());
+    let mut prev_value: Option<f64> = None;
+    let mut prev_rank: i64 = 0;
 
-	for (index, (player, value)) in data.into_iter().enumerate(){
-		let value_f64 = value.into();
-		let rank = if Some(value_f64) == prev_value{
-			prev_rank
-		}else{
-			(index as i64) + 1
-		};
+    for (index, (player, value)) in data.into_iter().enumerate() {
+        let value_f64 = value.into();
+        let rank = if Some(value_f64) == prev_value {
+            prev_rank
+        } else {
+            (index as i64) + 1
+        };
 
-		result.push(DataEntry { rank: rank, player: player, value: value_f64 });
+        result.push(DataEntry {
+            rank: rank,
+            player: player,
+            value: value_f64,
+        });
 
-		prev_value = Some(value_f64);
-		prev_rank = rank;
-	}
-	
-	return result;
+        prev_value = Some(value_f64);
+        prev_rank = rank;
+    }
+
+    return result;
 }
 
-fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(map: HashMap<String, T>, order: Ordering) -> String{
-	let sorted = get_sorted_values(map, order);
-	let data_entries = get_values_as_data_entries(sorted);
-	return serde_json::to_string(&data_entries).unwrap();
+fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(
+    map: HashMap<String, T>,
+    order: Ordering,
+) -> String {
+    let sorted = get_sorted_values(map, order);
+    let data_entries = get_values_as_data_entries(sorted);
+    return serde_json::to_string(&data_entries).unwrap();
 }
 
 pub fn as_json_string<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
@@ -398,184 +453,185 @@ where
     S: Serializer,
 {
     // Parse the string as JSON Value
-    let json_value: serde_json::Value = serde_json::from_str(value)
-        .map_err(serde::ser::Error::custom)?;
+    let json_value: serde_json::Value =
+        serde_json::from_str(value).map_err(serde::ser::Error::custom)?;
     json_value.serialize(serializer)
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct DataEntry{
-	pub rank: i64,
-	pub player: String,
-	pub value: f64,
+pub struct DataEntry {
+    pub rank: i64,
+    pub player: String,
+    pub value: f64,
 }
 
-impl Default for DataEntry{
-	fn default() -> Self {
-		return DataEntry
-		{
-			rank: -1,
-			player: String::new(),
-			value: 0.0
-		};
-	}
+impl Default for DataEntry {
+    fn default() -> Self {
+        return DataEntry {
+            rank: -1,
+            player: String::new(),
+            value: 0.0,
+        };
+    }
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct MetaData{
-	pub date: DateTime<Utc>
+pub struct MetaData {
+    pub date: DateTime<Utc>,
 }
 
 #[derive(Default, Deserialize, Serialize)]
-pub struct OutputType{
-	#[serde(serialize_with = "as_json_string")]
-	pub meta: String,
+pub struct OutputType {
+    #[serde(serialize_with = "as_json_string")]
+    pub meta: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub world_records: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub world_records: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub runner_times: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub runner_times: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub runner_ranks: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub runner_ranks: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub any_times: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub any_times: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub glitchless_times: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub glitchless_times: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub hundo_times: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub hundo_times: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub asylum_mastery: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub asylum_mastery: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub city_mastery: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub city_mastery: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub origins_mastery: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub origins_mastery: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub knight_mastery: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub knight_mastery: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub overall_mastery: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub overall_mastery: String,
 
-	#[serde(serialize_with = "as_json_string")]
-	pub oldest_world_records: String,
+    #[serde(serialize_with = "as_json_string")]
+    pub oldest_world_records: String,
 }
 
 #[tokio::main]
-async fn main(){
-	let skip_upload = std::env::args().any(|arg| arg == "--skip-upload");
+async fn main() {
+    let skip_upload = std::env::args().any(|arg| arg == "--skip-upload");
 
-	if !skip_upload {
-		let key = "GITHUB_TOKEN";
-		match env::var(key) {
-			Ok(_) => (),
-			Err(env::VarError::NotPresent) => {
-				println!("You must set the GITHUB_TOKEN environment variable");
-				return;
-			},
-			Err(env::VarError::NotUnicode(_)) => {
-				println!("GITHUB_TOKEN envar exists, but is not valid Unicode");
-				return;
-			},
-		}
+    if !skip_upload {
+        let key = "GITHUB_TOKEN";
+        match env::var(key) {
+            Ok(_) => (),
+            Err(env::VarError::NotPresent) => {
+                println!("You must set the GITHUB_TOKEN environment variable");
+                return;
+            }
+            Err(env::VarError::NotUnicode(_)) => {
+                println!("GITHUB_TOKEN envar exists, but is not valid Unicode");
+                return;
+            }
+        }
 
-		// Validate the GitHub token by trying to read the gist
-		if let Err(e) = gist_upload::validate_github_token().await {
-			println!("GitHub token was invalid or did not have access to the gist: {}", e);
-			return;
-		}
-	} else {
-		println!("Gist upload is disabled (--skip-upload flag is set)");
-	}
+        // Validate the GitHub token by trying to read the gist
+        if let Err(e) = gist_upload::validate_github_token().await {
+            println!(
+                "GitHub token was invalid or did not have access to the gist: {}",
+                e
+            );
+            return;
+        }
+    } else {
+        println!("Gist upload is disabled (--skip-upload flag is set)");
+    }
 
-	println!("Getting initial leaderboard data...");
-	let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
-	let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
-	let origins_leaderboards = src_api::get_all_fullgame_leaderboards(origins::GAME_ID).await;
-	let knight_leaderboards = src_api::get_all_fullgame_leaderboards(knight::GAME_ID).await;
-	let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
-	let _catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
+    println!("Getting initial leaderboard data...");
+    let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
+    let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
+    let origins_leaderboards = src_api::get_all_fullgame_leaderboards(origins::GAME_ID).await;
+    let knight_leaderboards = src_api::get_all_fullgame_leaderboards(knight::GAME_ID).await;
+    let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
+    let _catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
 
-	let mut all_main_boards: Vec<Leaderboard> = Vec::new();
-	all_main_boards.extend(asylum_leaderboards.clone());
-	all_main_boards.extend(city_leaderboards.clone());
-	all_main_boards.extend(origins_leaderboards.clone());
-	all_main_boards.extend(knight_leaderboards.clone());
+    let mut all_main_boards: Vec<Leaderboard> = Vec::new();
+    all_main_boards.extend(asylum_leaderboards.clone());
+    all_main_boards.extend(city_leaderboards.clone());
+    all_main_boards.extend(origins_leaderboards.clone());
+    all_main_boards.extend(knight_leaderboards.clone());
 
-	let mut output_data: OutputType = Default::default();
+    let mut output_data: OutputType = Default::default();
 
-	println!("Processing world records...");
-	let wrs = get_world_records(&all_main_boards).await;
-	output_data.world_records = serialize_to_json(wrs, Ordering::HigherIsBetter);
+    println!("Processing world records...");
+    let wrs = get_world_records(&all_main_boards).await;
+    output_data.world_records = serialize_to_json(wrs, Ordering::HigherIsBetter);
 
-	println!("Processing fastest runners...");
-	let runner_times = get_total_runner_times(&all_main_boards, true).await;
-	output_data.runner_times = serialize_to_json(runner_times, Ordering::LowerIsBetter);
+    println!("Processing fastest runners...");
+    let runner_times = get_total_runner_times(&all_main_boards, true).await;
+    output_data.runner_times = serialize_to_json(runner_times, Ordering::LowerIsBetter);
 
-	println!("Processing highest ranking runners...");
-	let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
-	output_data.runner_ranks = serialize_to_json(runner_ranks, Ordering::LowerIsBetter);
+    println!("Processing highest ranking runners...");
+    let runner_ranks = get_all_runner_ranks(&all_main_boards).await;
+    output_data.runner_ranks = serialize_to_json(runner_ranks, Ordering::LowerIsBetter);
 
-	println!("Processing Any% times...");
-	let any_times = get_all_any_percent_times().await;
-	output_data.any_times = serialize_to_json(any_times, Ordering::LowerIsBetter);
+    println!("Processing Any% times...");
+    let any_times = get_all_any_percent_times().await;
+    output_data.any_times = serialize_to_json(any_times, Ordering::LowerIsBetter);
 
-	println!("Processing Glitchless times...");
-	let glitchless_times = get_all_glitchless_times().await;
-	output_data.glitchless_times = serialize_to_json(glitchless_times, Ordering::LowerIsBetter);
+    println!("Processing Glitchless times...");
+    let glitchless_times = get_all_glitchless_times().await;
+    output_data.glitchless_times = serialize_to_json(glitchless_times, Ordering::LowerIsBetter);
 
-	println!("Processing 100% times...");
-	let hundo_times = get_all_hundo_times().await;
-	output_data.hundo_times = serialize_to_json(hundo_times, Ordering::LowerIsBetter);
+    println!("Processing 100% times...");
+    let hundo_times = get_all_hundo_times().await;
+    output_data.hundo_times = serialize_to_json(hundo_times, Ordering::LowerIsBetter);
 
-	println!("Processing Asylum mastery ranks...");
-	let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-	output_data.asylum_mastery = serialize_to_json(asylum_mastery, Ordering::HigherIsBetter);
+    println!("Processing Asylum mastery ranks...");
+    let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
+    output_data.asylum_mastery = serialize_to_json(asylum_mastery, Ordering::HigherIsBetter);
 
-	println!("Processing City mastery ranks...");
-	let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-	output_data.city_mastery = serialize_to_json(city_mastery, Ordering::HigherIsBetter);
+    println!("Processing City mastery ranks...");
+    let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
+    output_data.city_mastery = serialize_to_json(city_mastery, Ordering::HigherIsBetter);
 
-	println!("Processing Origins mastery ranks...");
-	let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-	output_data.origins_mastery = serialize_to_json(origins_mastery, Ordering::HigherIsBetter);
+    println!("Processing Origins mastery ranks...");
+    let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
+    output_data.origins_mastery = serialize_to_json(origins_mastery, Ordering::HigherIsBetter);
 
-	println!("Processing Knight mastery ranks...");
-	let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-	output_data.knight_mastery = serialize_to_json(knight_mastery, Ordering::HigherIsBetter);
+    println!("Processing Knight mastery ranks...");
+    let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
+    output_data.knight_mastery = serialize_to_json(knight_mastery, Ordering::HigherIsBetter);
 
-	println!("Processing overall mastery ranks...");
-	let overall_mastery = get_overall_mastery().await;
-	output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
+    println!("Processing overall mastery ranks...");
+    let overall_mastery = get_overall_mastery().await;
+    output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
 
-	println!("Processing oldest world records...");
-	let oldest_world_records = get_oldest_world_records(&all_main_boards).await;
-	output_data.oldest_world_records = serde_json::to_string(&oldest_world_records).unwrap();
+    println!("Processing oldest world records...");
+    let oldest_world_records = get_oldest_world_records(&all_main_boards).await;
+    output_data.oldest_world_records = serde_json::to_string(&oldest_world_records).unwrap();
 
-	let meta_data = MetaData { date: Utc::now() };
-	output_data.meta = serde_json::to_string(&meta_data).unwrap();
+    let meta_data = MetaData { date: Utc::now() };
+    output_data.meta = serde_json::to_string(&meta_data).unwrap();
 
-	let dir = Path::new("BatStats.json").parent().unwrap();
-	if !dir.exists(){
-		fs::create_dir_all(dir).await.unwrap();
-	}
+    let dir = Path::new("BatStats.json").parent().unwrap();
+    if !dir.exists() {
+        fs::create_dir_all(dir).await.unwrap();
+    }
 
-	let content = serde_json::to_string(&output_data).unwrap();
-	if let Err(e) = fs::write("BatStats.json", content).await{
-		eprintln!("Could not write to file! Error: {}", e);
-	}
+    let content = serde_json::to_string(&output_data).unwrap();
+    if let Err(e) = fs::write("BatStats.json", content).await {
+        eprintln!("Could not write to file! Error: {}", e);
+    }
 
-	if !skip_upload {
-		gist_upload::upload_gist("BatStats.json").await.unwrap();
-	} else {
-		println!("Skipping gist upload (--skip-upload flag is set)");
-	}
+    if !skip_upload {
+        gist_upload::upload_gist("BatStats.json").await.unwrap();
+    } else {
+        println!("Skipping gist upload (--skip-upload flag is set)");
+    }
 }
-

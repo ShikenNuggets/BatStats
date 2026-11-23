@@ -1,5 +1,5 @@
-pub mod core;
 pub mod category;
+pub mod core;
 pub mod game;
 pub mod leaderboard;
 pub mod run;

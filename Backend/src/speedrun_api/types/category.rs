@@ -7,53 +7,53 @@ use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CategoryType{
-	PerGame,
-	PerLevel
+pub enum CategoryType {
+    PerGame,
+    PerLevel,
 }
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum CategoryPlayersType{
-	Exactly,
-	UpTo,
+pub enum CategoryPlayersType {
+    Exactly,
+    UpTo,
 }
 
 #[derive(Clone, Deserialize)]
-pub struct CategoryPlayers{
-	#[serde(rename = "type")]
-	pub players_type: CategoryPlayersType,
+pub struct CategoryPlayers {
+    #[serde(rename = "type")]
+    pub players_type: CategoryPlayersType,
 
-	pub value: i32
+    pub value: i32,
 }
 
 #[derive(Clone, Deserialize)]
-pub struct Category{
-	pub id: String,
-	pub name: String,
-	pub weblink: String,
+pub struct Category {
+    pub id: String,
+    pub name: String,
+    pub weblink: String,
 
-	#[serde(rename = "type")]
-	pub category_type: CategoryType,
+    #[serde(rename = "type")]
+    pub category_type: CategoryType,
 
-	pub rules: String,
-	pub players: CategoryPlayers,
-	pub miscellaneous: bool,
-	pub links: Vec<core::SrcLink>
+    pub rules: String,
+    pub players: CategoryPlayers,
+    pub miscellaneous: bool,
+    pub links: Vec<core::SrcLink>,
 }
 
-impl traits::Cacheable for Category{
-	fn key(&self) -> String{
-		return self.id.to_string();
-	}
-}
-
-#[derive(Deserialize)]
-pub struct CategoryResponse{
-	pub data: Category
+impl traits::Cacheable for Category {
+    fn key(&self) -> String {
+        return self.id.to_string();
+    }
 }
 
 #[derive(Deserialize)]
-pub struct CategoriesResponse{
-	pub data: Vec<Category>
+pub struct CategoryResponse {
+    pub data: Category,
+}
+
+#[derive(Deserialize)]
+pub struct CategoriesResponse {
+    pub data: Vec<Category>,
 }

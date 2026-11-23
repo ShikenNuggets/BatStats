@@ -2,263 +2,284 @@ use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, NaiveDate, Utc};
 
-use crate::speedrun_api::{src_api, types::{leaderboard::Leaderboard, run::{RunPlayer, RunPlayerType}}};
+use crate::speedrun_api::{
+    src_api,
+    types::{
+        leaderboard::Leaderboard,
+        run::{RunPlayer, RunPlayerType},
+    },
+};
 
-pub async fn get_player_name(player : &RunPlayer) -> Option<String>{
-	if let RunPlayerType::Guest = player.rel{
-		return player.name.clone();
-	}
+pub async fn get_player_name(player: &RunPlayer) -> Option<String> {
+    if let RunPlayerType::Guest = player.rel {
+        return player.name.clone();
+    }
 
-	if player.id.is_none(){
-		return player.name.clone();
-	}
+    if player.id.is_none() {
+        return player.name.clone();
+    }
 
-	let user = src_api::get_user(&player.id.clone().unwrap()).await;
-	if user.is_none(){
-		return None;
-	}
+    let user = src_api::get_user(&player.id.clone().unwrap()).await;
+    if user.is_none() {
+        return None;
+    }
 
-	return Some(user.unwrap().names.international);
+    return Some(user.unwrap().names.international);
 }
 
-async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String>{
-	let mut runners: HashSet<String> = HashSet::new();
+async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
+    let mut runners: HashSet<String> = HashSet::new();
 
-	for leaderboard in leaderboards{
-		for run in &leaderboard.runs{
-			for player in &run.run.players{
-				let player_name = get_player_name(&player).await;
-				if player_name.is_none(){
-					continue;
-				}
-				runners.insert(player_name.unwrap());
-			}
-		}
-	}
+    for leaderboard in leaderboards {
+        for run in &leaderboard.runs {
+            for player in &run.run.players {
+                let player_name = get_player_name(&player).await;
+                if player_name.is_none() {
+                    continue;
+                }
+                runners.insert(player_name.unwrap());
+            }
+        }
+    }
 
-	return runners;
+    return runners;
 }
 
-pub fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64>{
-	if leaderboard.runs.is_empty(){
-		return None;
-	}
+pub fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
+    if leaderboard.runs.is_empty() {
+        return None;
+    }
 
-	return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
+    return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
 }
 
-fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64>{
-	if leaderboard.runs.is_empty(){
-		return None;
-	}
+fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
+    if leaderboard.runs.is_empty() {
+        return None;
+    }
 
-	return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+    return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
 }
 
-pub fn get_average_time(leaderboard: &Leaderboard) -> Option<f64>{
-	if leaderboard.runs.is_empty(){
-		return None;
-	}
+pub fn get_average_time(leaderboard: &Leaderboard) -> Option<f64> {
+    if leaderboard.runs.is_empty() {
+        return None;
+    }
 
-	let mut total_time: f64 = 0.0;
-	for run in &leaderboard.runs{
-		total_time += run.run.times.primary_t;
-	}
+    let mut total_time: f64 = 0.0;
+    for run in &leaderboard.runs {
+        total_time += run.run.times.primary_t;
+    }
 
-	return Some(total_time / (leaderboard.runs.len() as f64));
+    return Some(total_time / (leaderboard.runs.len() as f64));
 }
 
-fn is_more_than_n_years_ago(date: &NaiveDate, years: i64) -> bool{
-	let current_date = Utc::now().date_naive();
-	let n_years_ago = current_date - Duration::days(365 * years);
-	return date < &n_years_ago;
+fn is_more_than_n_years_ago(date: &NaiveDate, years: i64) -> bool {
+    let current_date = Utc::now().date_naive();
+    let n_years_ago = current_date - Duration::days(365 * years);
+    return date < &n_years_ago;
 }
 
-pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64>{
-	let real_average = get_average_time(leaderboard);
-	if real_average.is_none() || leaderboard.runs.len() < 5{
-		return real_average;
-	}
-	let real_average = real_average.unwrap();
+pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64> {
+    let real_average = get_average_time(leaderboard);
+    if real_average.is_none() || leaderboard.runs.len() < 5 {
+        return real_average;
+    }
+    let real_average = real_average.unwrap();
 
-	let mut total_time: f64 = 0.0;
-	let mut num_times: i64 = 0;
+    let mut total_time: f64 = 0.0;
+    let mut num_times: i64 = 0;
 
-	for run in &leaderboard.runs{
-		if run.run.date.is_none(){
-			continue; // Ignore runs that are too old to have a date
-		}
+    for run in &leaderboard.runs {
+        if run.run.date.is_none() {
+            continue; // Ignore runs that are too old to have a date
+        }
 
-		if run.run.times.primary_t > real_average && is_more_than_n_years_ago(&run.run.date.unwrap(), 5){
-			continue; // Ignore very old runs that are above average
-		}
+        if run.run.times.primary_t > real_average
+            && is_more_than_n_years_ago(&run.run.date.unwrap(), 5)
+        {
+            continue; // Ignore very old runs that are above average
+        }
 
-		num_times += 1;
-		total_time += run.run.times.primary_t;
-	}
+        num_times += 1;
+        total_time += run.run.times.primary_t;
+    }
 
-	let adjusted_average = total_time / (num_times as f64);
+    let adjusted_average = total_time / (num_times as f64);
 
-	if adjusted_average <= 0.0 || adjusted_average > real_average || num_times == 0{
-		return Some(real_average);
-	}
+    if adjusted_average <= 0.0 || adjusted_average > real_average || num_times == 0 {
+        return Some(real_average);
+    }
 
-	return Some(adjusted_average);
+    return Some(adjusted_average);
 }
 
-async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>{
-	let mut run_times: HashMap<String, f64> = HashMap::new();
+async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64> {
+    let mut run_times: HashMap<String, f64> = HashMap::new();
 
-	let fastest_time = get_fastest_time(&leaderboard);
-	let slowest_time = get_slowest_time(&leaderboard);
+    let fastest_time = get_fastest_time(&leaderboard);
+    let slowest_time = get_slowest_time(&leaderboard);
 
-	if fastest_time.is_none() || slowest_time.is_none(){
-		return run_times;
-	}
-	
-	for run in &leaderboard.runs{
-		let runner_name = get_player_name(run.run.players.first().unwrap()).await;
-		if runner_name.is_none(){
-			continue;
-		}
+    if fastest_time.is_none() || slowest_time.is_none() {
+        return run_times;
+    }
 
-		let runner_name = runner_name.unwrap();
-		if !run_times.contains_key(&runner_name) || run_times[&runner_name] > run.run.times.primary_t{
-			run_times.insert(runner_name, run.run.times.primary_t);
-		}
-	}
+    for run in &leaderboard.runs {
+        let runner_name = get_player_name(run.run.players.first().unwrap()).await;
+        if runner_name.is_none() {
+            continue;
+        }
 
-	return run_times;
+        let runner_name = runner_name.unwrap();
+        if !run_times.contains_key(&runner_name)
+            || run_times[&runner_name] > run.run.times.primary_t
+        {
+            run_times.insert(runner_name, run.run.times.primary_t);
+        }
+    }
+
+    return run_times;
 }
 
-async fn get_total_runner_times(leaderboards: &Vec<Leaderboard>, subtract_from_wr: bool) -> HashMap<String, f64>{
-	let mut runner_times: HashMap<String, f64> = HashMap::new();
+async fn get_total_runner_times(
+    leaderboards: &Vec<Leaderboard>,
+    subtract_from_wr: bool,
+) -> HashMap<String, f64> {
+    let mut runner_times: HashMap<String, f64> = HashMap::new();
 
-	let all_runners = get_all_runners(leaderboards).await;
-	for runner in &all_runners{
-		runner_times.insert(runner.to_string(), 0.0);
-	}
+    let all_runners = get_all_runners(leaderboards).await;
+    for runner in &all_runners {
+        runner_times.insert(runner.to_string(), 0.0);
+    }
 
-	for leaderboard in leaderboards{
-		let api_category = src_api::get_category(&leaderboard.category).await;
-		if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous{
-			continue;
-		}
+    for leaderboard in leaderboards {
+        let api_category = src_api::get_category(&leaderboard.category).await;
+        if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous {
+            continue;
+        }
 
-		let fastest_time = get_fastest_time(&leaderboard);
-		let slowest_time = get_slowest_time(&leaderboard);
-		let times = get_runner_times_map(leaderboard).await;
+        let fastest_time = get_fastest_time(&leaderboard);
+        let slowest_time = get_slowest_time(&leaderboard);
+        let times = get_runner_times_map(leaderboard).await;
 
-		if fastest_time.is_none() || slowest_time.is_none() || times.is_empty(){
-			println!("Something went wrong for leaderboard of category {}", leaderboard.category);
-			continue;
-		}
+        if fastest_time.is_none() || slowest_time.is_none() || times.is_empty() {
+            println!(
+                "Something went wrong for leaderboard of category {}",
+                leaderboard.category
+            );
+            continue;
+        }
 
-		let fastest_time = fastest_time.unwrap();
-		let slowest_time = slowest_time.unwrap() - fastest_time;
+        let fastest_time = fastest_time.unwrap();
+        let slowest_time = slowest_time.unwrap() - fastest_time;
 
-		for runner in &all_runners{
-			let mut time_to_add = slowest_time;
-			if times.contains_key(runner){
-				time_to_add = times[runner];
-				if subtract_from_wr{
-					time_to_add -= fastest_time;
-				}
-			}
+        for runner in &all_runners {
+            let mut time_to_add = slowest_time;
+            if times.contains_key(runner) {
+                time_to_add = times[runner];
+                if subtract_from_wr {
+                    time_to_add -= fastest_time;
+                }
+            }
 
-			runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
-		}
-	}
+            runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
+        }
+    }
 
-	return runner_times;
+    return runner_times;
 }
 
-pub async fn get_leaderboard_for_subcategory(game_id: &str, category_id: &str, var_id: &str, val_id: &str) -> Option<Leaderboard>{
-	let mut vars: HashMap<String, String> = HashMap::new();
-	vars.insert(var_id.to_string(), val_id.to_string());
-	return src_api::get_leaderboard(game_id, category_id, &vars).await;
+pub async fn get_leaderboard_for_subcategory(
+    game_id: &str,
+    category_id: &str,
+    var_id: &str,
+    val_id: &str,
+) -> Option<Leaderboard> {
+    let mut vars: HashMap<String, String> = HashMap::new();
+    vars.insert(var_id.to_string(), val_id.to_string());
+    return src_api::get_leaderboard(game_id, category_id, &vars).await;
 }
 
-pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64>{
-	let mut combined_times: HashMap<String, f64> = HashMap::new();
+pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap<String, f64> {
+    let mut combined_times: HashMap<String, f64> = HashMap::new();
 
-	for leaderboard in leaderboards{
-		let mut lb_temp: Vec<Leaderboard> = Vec::new();
-		lb_temp.push(leaderboard.clone());
-		let times = get_total_runner_times(&lb_temp, false).await;
-		for time in times{
-			if !combined_times.contains_key(&time.0) || combined_times[&time.0] > time.1{
-				combined_times.insert(time.0, time.1);
-			}
-		}
-	}
-	
-	return combined_times;
+    for leaderboard in leaderboards {
+        let mut lb_temp: Vec<Leaderboard> = Vec::new();
+        lb_temp.push(leaderboard.clone());
+        let times = get_total_runner_times(&lb_temp, false).await;
+        for time in times {
+            if !combined_times.contains_key(&time.0) || combined_times[&time.0] > time.1 {
+                combined_times.insert(time.0, time.1);
+            }
+        }
+    }
+
+    return combined_times;
 }
 
-pub async fn get_game_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
-	let game = src_api::get_game(&leaderboard.game).await;
-	if game.is_none(){
-		return "Unknown Game".to_string();
-	}
+pub async fn get_game_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
+    let game = src_api::get_game(&leaderboard.game).await;
+    if game.is_none() {
+        return "Unknown Game".to_string();
+    }
 
-	let game_name = game.unwrap().names.international;
-	if game_name.contains("Asylum"){
-		return "Asylum".to_string();
-	} else if game_name.contains("City") {
-		return "City".to_string();
-	} else if game_name.contains("Origins") {
-		return "Origins".to_string();
-	} else if game_name.contains("Knight") {
-		return "Knight".to_string();
-	}
+    let game_name = game.unwrap().names.international;
+    if game_name.contains("Asylum") {
+        return "Asylum".to_string();
+    } else if game_name.contains("City") {
+        return "City".to_string();
+    } else if game_name.contains("Origins") {
+        return "Origins".to_string();
+    } else if game_name.contains("Knight") {
+        return "Knight".to_string();
+    }
 
-	return game_name;
+    return game_name;
 }
 
-pub async fn get_category_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
-	let category = src_api::get_category(&leaderboard.category).await;
-	if category.is_none(){
-		return "Unknown Category".to_string();
-	}
+pub async fn get_category_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
+    let category = src_api::get_category(&leaderboard.category).await;
+    if category.is_none() {
+        return "Unknown Category".to_string();
+    }
 
-	return category.unwrap().name;
+    return category.unwrap().name;
 }
 
-pub async fn get_subcategory_name_from_leaderboard(leaderboard: &Leaderboard) -> String{
-	let mut subcategory_parts: Vec<String> = Vec::new();
-	
-	for (var_id, value_id) in &leaderboard.values {
-		let var = src_api::get_variable(var_id).await;
-		if var.is_none() {
-			continue;
-		}
-		
-		let var = var.unwrap();
-		if !var.is_subcategory {
-			continue;
-		}
-		
-		if let Some(value) = var.values.values.get(value_id) {
-			subcategory_parts.push(value.label.clone());
-		}
-	}
-	
-	if subcategory_parts.is_empty() {
-		return "".to_string();
-	}
-	
-	return subcategory_parts.join(", ");
+pub async fn get_subcategory_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
+    let mut subcategory_parts: Vec<String> = Vec::new();
+
+    for (var_id, value_id) in &leaderboard.values {
+        let var = src_api::get_variable(var_id).await;
+        if var.is_none() {
+            continue;
+        }
+
+        let var = var.unwrap();
+        if !var.is_subcategory {
+            continue;
+        }
+
+        if let Some(value) = var.values.values.get(value_id) {
+            subcategory_parts.push(value.label.clone());
+        }
+    }
+
+    if subcategory_parts.is_empty() {
+        return "".to_string();
+    }
+
+    return subcategory_parts.join(", ");
 }
 
-pub async fn get_full_category_name(leaderboard: &Leaderboard) -> String{
-	let game_name = get_game_name_from_leaderboard(leaderboard).await;
-	let category_name = get_category_name_from_leaderboard(leaderboard).await;
-	let subcategory_name = get_subcategory_name_from_leaderboard(leaderboard).await;
+pub async fn get_full_category_name(leaderboard: &Leaderboard) -> String {
+    let game_name = get_game_name_from_leaderboard(leaderboard).await;
+    let category_name = get_category_name_from_leaderboard(leaderboard).await;
+    let subcategory_name = get_subcategory_name_from_leaderboard(leaderboard).await;
 
-	if subcategory_name.is_empty(){
-		return format!("{} - {}", game_name, category_name);
-	}
+    if subcategory_name.is_empty() {
+        return format!("{} - {}", game_name, category_name);
+    }
 
-	return format!("{} - {} ({})", game_name, category_name, subcategory_name);
+    return format!("{} - {} ({})", game_name, category_name, subcategory_name);
 }
