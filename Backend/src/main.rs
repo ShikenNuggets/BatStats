@@ -64,12 +64,7 @@ async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i
         }
 
         let player_name = player_name.unwrap();
-
-        if let Some(value) = world_records.get_mut(&player_name) {
-            *value += 1;
-        } else if !world_records.contains_key(&player_name) {
-            world_records.insert(player_name, 1);
-        }
+        *world_records.entry(player_name).or_insert(0) += 1;
     }
 
     return world_records;
