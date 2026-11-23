@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{speedrun_api::types::leaderboard::Leaderboard, utils};
+use crate::utils;
 
 pub const GAME_ID: &str = "4d7p4rd7";
 
@@ -95,17 +95,16 @@ pub async fn get_best_any_percent_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(any_easy.unwrap());
-    all_boards.push(any_normal.unwrap());
-    all_boards.push(any_hard.unwrap());
-
-    all_boards.push(glitchless_easy.unwrap());
-    all_boards.push(glitchless_normal.unwrap());
-    all_boards.push(glitchless_hard.unwrap());
-
-    all_boards.push(knightfall_first.unwrap());
-    all_boards.push(knightfall_full.unwrap());
+    let all_boards = vec![
+        any_easy.unwrap(),
+        any_normal.unwrap(),
+        any_hard.unwrap(),
+        glitchless_easy.unwrap(),
+        glitchless_normal.unwrap(),
+        glitchless_hard.unwrap(),
+        knightfall_first.unwrap(),
+        knightfall_full.unwrap(),
+    ];
 
     return utils::combine_times_best_only(&all_boards).await;
 }
@@ -138,10 +137,11 @@ pub async fn get_best_glitchless_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(glitchless_easy.unwrap());
-    all_boards.push(glitchless_normal.unwrap());
-    all_boards.push(glitchless_hard.unwrap());
+    let all_boards = vec![
+        glitchless_easy.unwrap(),
+        glitchless_normal.unwrap(),
+        glitchless_hard.unwrap(),
+    ];
     return utils::combine_times_best_only(&all_boards).await;
 }
 
@@ -158,7 +158,6 @@ pub async fn get_best_hundo_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(knightfall_full.unwrap());
+    let all_boards = vec![knightfall_full.unwrap()];
     return utils::combine_times_best_only(&all_boards).await;
 }

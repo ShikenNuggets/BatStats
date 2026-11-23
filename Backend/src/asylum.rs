@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    speedrun_api::{src_api, types::leaderboard::Leaderboard},
-    utils,
-};
+use crate::{speedrun_api::src_api, utils};
 
 pub const GAME_ID: &str = "4pd0p06e";
 
@@ -40,11 +37,12 @@ pub async fn get_best_any_percent_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(any.unwrap());
-    all_boards.push(nms.unwrap());
-    all_boards.push(hundo.unwrap());
-    all_boards.push(hundo_nms.unwrap());
+    let all_boards = vec![
+        any.unwrap(),
+        nms.unwrap(),
+        hundo.unwrap(),
+        hundo_nms.unwrap(),
+    ];
 
     return utils::combine_times_best_only(&all_boards).await;
 }
@@ -59,9 +57,7 @@ pub async fn get_best_glitchless_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(nms.unwrap());
-    all_boards.push(hundo_nms.unwrap());
+    let all_boards = vec![nms.unwrap(), hundo_nms.unwrap()];
 
     return utils::combine_times_best_only(&all_boards).await;
 }
@@ -76,9 +72,7 @@ pub async fn get_best_hundo_times() -> HashMap<String, f64> {
         return HashMap::new();
     }
 
-    let mut all_boards: Vec<Leaderboard> = Vec::new();
-    all_boards.push(hundo.unwrap());
-    all_boards.push(hundo_nms.unwrap());
+    let all_boards = vec![hundo.unwrap(), hundo_nms.unwrap()];
 
     return utils::combine_times_best_only(&all_boards).await;
 }

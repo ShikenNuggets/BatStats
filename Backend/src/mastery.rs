@@ -22,8 +22,10 @@ pub fn calculate_mastery(wr: f64, average: f64, run_time: f64) -> f64 {
 }
 
 pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData {
-    let mut raw_mastery: RawMasteryData = Default::default();
-    raw_mastery.num_players = leaderboard.runs.len() as i64;
+    let mut raw_mastery = RawMasteryData {
+        num_players: leaderboard.runs.len() as i64,
+        ..Default::default()
+    };
 
     let fastest_time = utils::get_fastest_time(leaderboard);
     if fastest_time.is_none() {

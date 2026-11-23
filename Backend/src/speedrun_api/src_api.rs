@@ -211,15 +211,13 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard> {
 
         if subcats.is_empty() {
             let vars = HashMap::new();
-            let response = get_leaderboard(game_id, &cat.id, &vars).await;
-            if response.is_some() {
-                result.push(response.unwrap());
+            if let Some(lb) = get_leaderboard(game_id, &cat.id, &vars).await {
+                result.push(lb);
             }
         } else {
             for subcat_combo in &subcats {
-                let response = get_leaderboard(game_id, &cat.id, subcat_combo).await;
-                if response.is_some() {
-                    result.push(response.unwrap());
+                if let Some(lb) = get_leaderboard(game_id, &cat.id, subcat_combo).await {
+                    result.push(lb);
                 }
             }
         }

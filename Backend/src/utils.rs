@@ -202,8 +202,7 @@ pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap
     let mut combined_times: HashMap<String, f64> = HashMap::new();
 
     for leaderboard in leaderboards {
-        let mut lb_temp: Vec<Leaderboard> = Vec::new();
-        lb_temp.push(leaderboard.clone());
+        let lb_temp = vec![leaderboard.clone()];
         let times = get_total_runner_times(&lb_temp, false).await;
         for time in times {
             if !combined_times.contains_key(&time.0) || combined_times[&time.0] > time.1 {
