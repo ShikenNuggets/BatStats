@@ -44,7 +44,7 @@ pub struct Category {
 
 impl traits::Cacheable for Category {
     fn key(&self) -> String {
-        return self.id.to_string();
+        self.id.to_string()
     }
 }
 

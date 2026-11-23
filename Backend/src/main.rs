@@ -38,11 +38,9 @@ async fn get_player_name(player: &RunPlayer) -> Option<String> {
     }
 
     let user = src_api::get_user(&player.id.clone().unwrap()).await;
-    if user.is_none() {
-        return None;
-    }
+    user.as_ref()?;
 
-    return Some(user.unwrap().names.international);
+    Some(user.unwrap().names.international)
 }
 
 async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32> {
@@ -67,7 +65,7 @@ async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i
         *world_records.entry(player_name).or_insert(0) += 1;
     }
 
-    return world_records;
+    world_records
 }
 
 async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
@@ -76,7 +74,7 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
     for leaderboard in leaderboards {
         for run in &leaderboard.runs {
             for player in &run.run.players {
-                let player_name = get_player_name(&player).await;
+                let player_name = get_player_name(player).await;
                 if player_name.is_none() {
                     continue;
                 }
@@ -85,7 +83,7 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
         }
     }
 
-    return runners;
+    runners
 }
 
 fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -93,7 +91,7 @@ fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
         return None;
     }
 
-    return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
+    Some(leaderboard.runs.first().unwrap().run.times.primary_t)
 }
 
 fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -101,7 +99,7 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
         return None;
     }
 
-    return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+    Some(leaderboard.runs.last().unwrap().run.times.primary_t)
 }
 
 fn get_last_place(leaderboard: &Leaderboard) -> i32 {
@@ -109,14 +107,14 @@ fn get_last_place(leaderboard: &Leaderboard) -> i32 {
         return 0;
     }
 
-    return leaderboard.runs.last().unwrap().place.into();
+    leaderboard.runs.last().unwrap().place
 }
 
 async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64> {
     let mut run_times: HashMap<String, f64> = HashMap::new();
 
-    let fastest_time = get_fastest_time(&leaderboard);
-    let slowest_time = get_slowest_time(&leaderboard);
+    let fastest_time = get_fastest_time(leaderboard);
+    let slowest_time = get_slowest_time(leaderboard);
 
     if fastest_time.is_none() || slowest_time.is_none() {
         return run_times;
@@ -131,7 +129,7 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
         run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
     }
 
-    return run_times;
+    run_times
 }
 
 async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32> {
@@ -148,11 +146,11 @@ async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32>
             continue;
         }
 
-        let rank_as_i32: i32 = run.place.into();
+        let rank_as_i32: i32 = run.place;
         run_ranks.insert(runner_name.unwrap(), rank_as_i32 - 1);
     }
 
-    return run_ranks;
+    run_ranks
 }
 
 async fn get_total_runner_times(
@@ -172,8 +170,8 @@ async fn get_total_runner_times(
             continue;
         }
 
-        let fastest_time = get_fastest_time(&leaderboard);
-        let slowest_time = get_slowest_time(&leaderboard);
+        let fastest_time = get_fastest_time(leaderboard);
+        let slowest_time = get_slowest_time(leaderboard);
         let times = get_runner_times_map(leaderboard).await;
 
         if fastest_time.is_none() || slowest_time.is_none() || times.is_empty() {
@@ -200,7 +198,7 @@ async fn get_total_runner_times(
         }
     }
 
-    return runner_times;
+    runner_times
 }
 
 async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32> {
@@ -238,7 +236,7 @@ async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String
         }
     }
 
-    return runner_ranks;
+    runner_ranks
 }
 
 async fn combine_times(
@@ -261,7 +259,7 @@ async fn combine_times(
         final_times.insert(time.0.to_string(), time_val);
     }
 
-    return final_times;
+    final_times
 }
 
 async fn get_all_any_percent_times() -> HashMap<String, f64> {
@@ -338,7 +336,7 @@ async fn get_overall_mastery() -> HashMap<String, f64> {
     merge_mastery(&origins_mastery, &mut overall_mastery, 4.0);
     merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
 
-    return overall_mastery;
+    overall_mastery
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -369,7 +367,7 @@ async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldR
         }
         let player_name = player_name.unwrap();
 
-        let category_name = utils::get_full_category_name(&lb).await;
+        let category_name = utils::get_full_category_name(lb).await;
 
         let date = match wr_run.run.date {
             Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(
@@ -380,14 +378,14 @@ async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldR
         };
 
         world_records.push(WorldRecordInfo {
-            player_name: player_name,
+            player_name,
             category_name,
             date,
         });
     }
 
     world_records.sort_by_key(|wr| wr.date);
-    return world_records;
+    world_records
 }
 
 enum Ordering {
@@ -405,7 +403,7 @@ fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) ->
         }
     });
 
-    return vec;
+    vec
 }
 
 fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry> {
@@ -422,8 +420,8 @@ fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) 
         };
 
         result.push(DataEntry {
-            rank: rank,
-            player: player,
+            rank,
+            player,
             value: value_f64,
         });
 
@@ -431,7 +429,7 @@ fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) 
         prev_rank = rank;
     }
 
-    return result;
+    result
 }
 
 fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(
@@ -440,7 +438,7 @@ fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(
 ) -> String {
     let sorted = get_sorted_values(map, order);
     let data_entries = get_values_as_data_entries(sorted);
-    return serde_json::to_string(&data_entries).unwrap();
+    serde_json::to_string(&data_entries).unwrap()
 }
 
 pub fn as_json_string<S>(value: &str, serializer: S) -> Result<S::Ok, S::Error>
@@ -462,11 +460,11 @@ pub struct DataEntry {
 
 impl Default for DataEntry {
     fn default() -> Self {
-        return DataEntry {
+        DataEntry {
             rank: -1,
             player: String::new(),
             value: 0.0,
-        };
+        }
     }
 }
 

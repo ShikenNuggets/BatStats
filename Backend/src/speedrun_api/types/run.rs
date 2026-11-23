@@ -94,6 +94,6 @@ pub struct Run {
 
 impl traits::Cacheable for Run {
     fn key(&self) -> String {
-        return self.id.to_string();
+        self.id.to_string()
     }
 }

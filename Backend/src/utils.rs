@@ -20,11 +20,9 @@ pub async fn get_player_name(player: &RunPlayer) -> Option<String> {
     }
 
     let user = src_api::get_user(&player.id.clone().unwrap()).await;
-    if user.is_none() {
-        return None;
-    }
+    user.as_ref()?;
 
-    return Some(user.unwrap().names.international);
+    Some(user.unwrap().names.international)
 }
 
 async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
@@ -33,7 +31,7 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
     for leaderboard in leaderboards {
         for run in &leaderboard.runs {
             for player in &run.run.players {
-                let player_name = get_player_name(&player).await;
+                let player_name = get_player_name(player).await;
                 if player_name.is_none() {
                     continue;
                 }
@@ -42,7 +40,7 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
         }
     }
 
-    return runners;
+    runners
 }
 
 pub fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -50,7 +48,7 @@ pub fn get_fastest_time(leaderboard: &Leaderboard) -> Option<f64> {
         return None;
     }
 
-    return Some(leaderboard.runs.first().unwrap().run.times.primary_t);
+    Some(leaderboard.runs.first().unwrap().run.times.primary_t)
 }
 
 fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -58,7 +56,7 @@ fn get_slowest_time(leaderboard: &Leaderboard) -> Option<f64> {
         return None;
     }
 
-    return Some(leaderboard.runs.last().unwrap().run.times.primary_t);
+    Some(leaderboard.runs.last().unwrap().run.times.primary_t)
 }
 
 pub fn get_average_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -71,13 +69,13 @@ pub fn get_average_time(leaderboard: &Leaderboard) -> Option<f64> {
         total_time += run.run.times.primary_t;
     }
 
-    return Some(total_time / (leaderboard.runs.len() as f64));
+    Some(total_time / (leaderboard.runs.len() as f64))
 }
 
 fn is_more_than_n_years_ago(date: &NaiveDate, years: i64) -> bool {
     let current_date = Utc::now().date_naive();
     let n_years_ago = current_date - Duration::days(365 * years);
-    return date < &n_years_ago;
+    date < &n_years_ago
 }
 
 pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64> {
@@ -111,14 +109,14 @@ pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64> {
         return Some(real_average);
     }
 
-    return Some(adjusted_average);
+    Some(adjusted_average)
 }
 
 async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64> {
     let mut run_times: HashMap<String, f64> = HashMap::new();
 
-    let fastest_time = get_fastest_time(&leaderboard);
-    let slowest_time = get_slowest_time(&leaderboard);
+    let fastest_time = get_fastest_time(leaderboard);
+    let slowest_time = get_slowest_time(leaderboard);
 
     if fastest_time.is_none() || slowest_time.is_none() {
         return run_times;
@@ -138,7 +136,7 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
         }
     }
 
-    return run_times;
+    run_times
 }
 
 async fn get_total_runner_times(
@@ -158,8 +156,8 @@ async fn get_total_runner_times(
             continue;
         }
 
-        let fastest_time = get_fastest_time(&leaderboard);
-        let slowest_time = get_slowest_time(&leaderboard);
+        let fastest_time = get_fastest_time(leaderboard);
+        let slowest_time = get_slowest_time(leaderboard);
         let times = get_runner_times_map(leaderboard).await;
 
         if fastest_time.is_none() || slowest_time.is_none() || times.is_empty() {
@@ -186,7 +184,7 @@ async fn get_total_runner_times(
         }
     }
 
-    return runner_times;
+    runner_times
 }
 
 pub async fn get_leaderboard_for_subcategory(
@@ -214,7 +212,7 @@ pub async fn combine_times_best_only(leaderboards: &Vec<Leaderboard>) -> HashMap
         }
     }
 
-    return combined_times;
+    combined_times
 }
 
 pub async fn get_game_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
@@ -234,7 +232,7 @@ pub async fn get_game_name_from_leaderboard(leaderboard: &Leaderboard) -> String
         return "Knight".to_string();
     }
 
-    return game_name;
+    game_name
 }
 
 pub async fn get_category_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
@@ -243,7 +241,7 @@ pub async fn get_category_name_from_leaderboard(leaderboard: &Leaderboard) -> St
         return "Unknown Category".to_string();
     }
 
-    return category.unwrap().name;
+    category.unwrap().name
 }
 
 pub async fn get_subcategory_name_from_leaderboard(leaderboard: &Leaderboard) -> String {
@@ -269,7 +267,7 @@ pub async fn get_subcategory_name_from_leaderboard(leaderboard: &Leaderboard) ->
         return "".to_string();
     }
 
-    return subcategory_parts.join(", ");
+    subcategory_parts.join(", ")
 }
 
 pub async fn get_full_category_name(leaderboard: &Leaderboard) -> String {
@@ -281,5 +279,5 @@ pub async fn get_full_category_name(leaderboard: &Leaderboard) -> String {
         return format!("{} - {}", game_name, category_name);
     }
 
-    return format!("{} - {} ({})", game_name, category_name, subcategory_name);
+    format!("{} - {} ({})", game_name, category_name, subcategory_name)
 }

@@ -49,7 +49,7 @@ pub struct Variable {
 
 impl traits::Cacheable for Variable {
     fn key(&self) -> String {
-        return self.id.to_string();
+        self.id.to_string()
     }
 }
 

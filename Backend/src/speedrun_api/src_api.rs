@@ -40,7 +40,7 @@ pub async fn get_game(game_id: &str) -> Option<Game> {
     };
 
     src_cache::GAME_CACHE.insert(&map.data);
-    return Some(map.data);
+    Some(map.data)
 }
 
 pub async fn get_category(category_id: &str) -> Option<Category> {
@@ -72,7 +72,7 @@ pub async fn get_category(category_id: &str) -> Option<Category> {
     };
 
     src_cache::CATEGORY_CACHE.insert(&map.data);
-    return Some(map.data);
+    Some(map.data)
 }
 
 pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category> {
@@ -110,7 +110,7 @@ pub async fn get_all_categories_for_game(game: &str) -> Vec<category::Category> 
     }
 
     src_cache::ALL_CATS_CACHE.insert(request_str, ret_val.clone());
-    return ret_val;
+    ret_val
 
     //let map = match result {
     //	Ok(parsed) => parsed,
@@ -165,7 +165,7 @@ pub async fn get_leaderboard(
     };
 
     LEADERBOARD_CACHE.insert(&map.data);
-    return Some(map.data);
+    Some(map.data)
 }
 
 pub fn get_subcategories_for_category(
@@ -194,7 +194,7 @@ pub fn get_subcategories_for_category(
         }
     }
 
-    return result;
+    result
 }
 
 pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard> {
@@ -225,7 +225,7 @@ pub async fn get_all_fullgame_leaderboards(game_id: &str) -> Vec<Leaderboard> {
         }
     }
 
-    return result;
+    result
 }
 
 pub async fn get_user(user_id: &str) -> Option<types::user::User> {
@@ -255,7 +255,7 @@ pub async fn get_user(user_id: &str) -> Option<types::user::User> {
     };
 
     src_cache::USER_CACHE.insert(&map.data);
-    return Some(map.data);
+    Some(map.data)
 }
 
 pub async fn get_variable(variable_id: &str) -> Option<Variable> {
@@ -287,7 +287,7 @@ pub async fn get_variable(variable_id: &str) -> Option<Variable> {
     };
 
     src_cache::VARIABLE_CACHE.insert(&map.data);
-    return Some(map.data);
+    Some(map.data)
 }
 
 pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable> {
@@ -317,5 +317,5 @@ pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable> {
     };
 
     src_cache::ALL_VARS_CACHE.insert(str, map.data.clone());
-    return map.data;
+    map.data
 }

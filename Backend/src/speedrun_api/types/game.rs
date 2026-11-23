@@ -51,7 +51,7 @@ pub struct Game {
 
 impl traits::Cacheable for Game {
     fn key(&self) -> String {
-        return self.id.to_string();
+        self.id.to_string()
     }
 }
 

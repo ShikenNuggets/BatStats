@@ -50,24 +50,24 @@ pub fn get_leaderboard_cache_key(
 ) -> String {
     let mut key: String = Default::default();
     key.reserve(game.len() + category.len() + 2 + (variables.len() * 16));
-    key.push_str(&game);
-    key.push_str("_");
-    key.push_str(&category);
+    key.push_str(game);
+    key.push('_');
+    key.push_str(category);
 
     for pair in variables {
         key.reserve(pair.0.len() + pair.1.len() + 2);
-        key.push_str("_");
-        key.push_str(&pair.0);
-        key.push_str("_");
-        key.push_str(&pair.1);
+        key.push('_');
+        key.push_str(pair.0);
+        key.push('_');
+        key.push_str(pair.1);
     }
 
-    return key;
+    key
 }
 
 impl traits::Cacheable for Leaderboard {
     fn key(&self) -> String {
-        return get_leaderboard_cache_key(&self.game, &self.category, &self.values);
+        get_leaderboard_cache_key(&self.game, &self.category, &self.values)
     }
 }
 

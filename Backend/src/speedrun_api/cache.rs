@@ -14,7 +14,7 @@ impl<T: Cacheable + Clone> Cache<T> {
     }
 
     pub fn get(&self, key: &str) -> Option<T> {
-        return self.map.get(key).map(|v| v.clone());
+        self.map.get(key).map(|v| v.clone())
     }
 
     pub fn insert(&self, value: &T) {

@@ -41,7 +41,7 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>> {
 }
 
 pub fn parse_to_url(base_url: &str, args: &HashMap<String, String>) -> Result<Url, Box<dyn Error>> {
-    let mut url = Url::parse(&base_url)?;
+    let mut url = Url::parse(base_url)?;
     url.query_pairs_mut().extend_pairs(args.iter());
     Ok(url)
 }

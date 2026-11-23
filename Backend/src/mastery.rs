@@ -18,7 +18,7 @@ pub fn calculate_mastery(wr: f64, average: f64, run_time: f64) -> f64 {
         return 0.0;
     }
 
-    return (average - run_time) / (average - wr);
+    (average - run_time) / (average - wr)
 }
 
 pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData {
@@ -61,7 +61,7 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
             .or_insert(mastery);
     }
 
-    return raw_mastery;
+    raw_mastery
 }
 
 pub async fn get_mastery_ranks_for_game(game_id: &str) -> HashMap<String, f64> {
@@ -91,7 +91,7 @@ pub async fn get_mastery_ranks_for_game(game_id: &str) -> HashMap<String, f64> {
         }
     }
 
-    return overall_mastery;
+    overall_mastery
 }
 
 #[cfg(test)]
