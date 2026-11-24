@@ -8,8 +8,8 @@ mod mastery;
 mod speedrun_api;
 mod utils;
 
-const MULTI_GAME_ID: &str = "nd2eyoed";
-const CATEXT_GAME_ID: &str = "m1mnnv3d";
+// const MULTI_GAME_ID: &str = "nd2eyoed";
+// const CATEXT_GAME_ID: &str = "m1mnnv3d";
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, Serializer};
@@ -329,29 +329,30 @@ fn merge_mastery(
     overall_mastery: &mut HashMap<String, f64>,
     divisor: f64,
 ) {
-    for entry in mastery {
-        let name = entry.0.clone();
-        let value = entry.1 / divisor;
-        if overall_mastery.contains_key(&name) {
-            let cur_val = overall_mastery[&name];
-            overall_mastery.insert(name, cur_val + value);
-        } else {
-            overall_mastery.insert(name, value);
-        }
+    for (name, score) in mastery {
+        let weighted = score / divisor;
+        *overall_mastery.entry(name.clone()).or_insert(0.0) += weighted;
     }
 }
 
-async fn get_overall_mastery() -> HashMap<String, f64> {
-    let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-    let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-    let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-    let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-
+fn get_overall_mastery(
+    asylum_mastery: &HashMap<String, f64>,
+    city_mastery: &HashMap<String, f64>,
+    origins_mastery: &HashMap<String, f64>,
+    knight_mastery: &HashMap<String, f64>,
+) -> HashMap<String, f64> {
+    let games = [
+        asylum_mastery,
+        city_mastery,
+        origins_mastery,
+        knight_mastery,
+    ];
+    let divisor = games.len() as f64;
     let mut overall_mastery = HashMap::new();
-    merge_mastery(&asylum_mastery, &mut overall_mastery, 4.0);
-    merge_mastery(&city_mastery, &mut overall_mastery, 4.0);
-    merge_mastery(&origins_mastery, &mut overall_mastery, 4.0);
-    merge_mastery(&knight_mastery, &mut overall_mastery, 4.0);
+
+    for game_mastery in games {
+        merge_mastery(game_mastery, &mut overall_mastery, divisor);
+    }
 
     overall_mastery
 }
@@ -593,14 +594,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let city_leaderboards = src_api::get_all_fullgame_leaderboards(city::GAME_ID).await;
     let origins_leaderboards = src_api::get_all_fullgame_leaderboards(origins::GAME_ID).await;
     let knight_leaderboards = src_api::get_all_fullgame_leaderboards(knight::GAME_ID).await;
-    let _multigame_leaderboards = src_api::get_all_fullgame_leaderboards(MULTI_GAME_ID).await;
-    let _catext_leaderboards = src_api::get_all_fullgame_leaderboards(CATEXT_GAME_ID).await;
 
-    let mut all_main_boards: Vec<Leaderboard> = Vec::new();
-    all_main_boards.extend(asylum_leaderboards.clone());
-    all_main_boards.extend(city_leaderboards.clone());
-    all_main_boards.extend(origins_leaderboards.clone());
-    all_main_boards.extend(knight_leaderboards.clone());
+    let mut all_main_boards = Vec::with_capacity(
+        asylum_leaderboards.len()
+            + city_leaderboards.len()
+            + origins_leaderboards.len()
+            + knight_leaderboards.len(),
+    );
+    all_main_boards.extend(asylum_leaderboards);
+    all_main_boards.extend(city_leaderboards);
+    all_main_boards.extend(origins_leaderboards);
+    all_main_boards.extend(knight_leaderboards);
 
     let mut output_data: OutputType = Default::default();
 
@@ -630,22 +634,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Processing Asylum mastery ranks...");
     let asylum_mastery = mastery::get_mastery_ranks_for_game(asylum::GAME_ID).await;
-    output_data.asylum_mastery = serialize_to_json(asylum_mastery, Ordering::HigherIsBetter);
 
     println!("Processing City mastery ranks...");
     let city_mastery = mastery::get_mastery_ranks_for_game(city::GAME_ID).await;
-    output_data.city_mastery = serialize_to_json(city_mastery, Ordering::HigherIsBetter);
 
     println!("Processing Origins mastery ranks...");
     let origins_mastery = mastery::get_mastery_ranks_for_game(origins::GAME_ID).await;
-    output_data.origins_mastery = serialize_to_json(origins_mastery, Ordering::HigherIsBetter);
 
     println!("Processing Knight mastery ranks...");
     let knight_mastery = mastery::get_mastery_ranks_for_game(knight::GAME_ID).await;
-    output_data.knight_mastery = serialize_to_json(knight_mastery, Ordering::HigherIsBetter);
 
     println!("Processing overall mastery ranks...");
-    let overall_mastery = get_overall_mastery().await;
+    let overall_mastery = get_overall_mastery(
+        &asylum_mastery,
+        &city_mastery,
+        &origins_mastery,
+        &knight_mastery,
+    );
+
+    output_data.asylum_mastery = serialize_to_json(asylum_mastery, Ordering::HigherIsBetter);
+    output_data.city_mastery = serialize_to_json(city_mastery, Ordering::HigherIsBetter);
+    output_data.origins_mastery = serialize_to_json(origins_mastery, Ordering::HigherIsBetter);
+    output_data.knight_mastery = serialize_to_json(knight_mastery, Ordering::HigherIsBetter);
     output_data.overall_mastery = serialize_to_json(overall_mastery, Ordering::HigherIsBetter);
 
     println!("Processing oldest world records...");
@@ -1053,5 +1063,20 @@ mod tests {
         assert_eq!(ranks.get("RunnerA"), Some(&0));
         assert_eq!(ranks.get("RunnerB"), Some(&0));
         assert_eq!(ranks.get("RunnerC"), Some(&2));
+    }
+
+    #[test]
+    fn test_get_overall_mastery_weights_games_equally() {
+        let asylum = HashMap::from([("Alice".to_string(), 1.0), ("Bob".to_string(), 0.8)]);
+        let city = HashMap::from([("Alice".to_string(), 0.6), ("Cara".to_string(), 1.0)]);
+        let origins = HashMap::from([("Alice".to_string(), 0.4), ("Bob".to_string(), 0.4)]);
+        let knight = HashMap::from([("Alice".to_string(), 0.8)]);
+
+        let overall = get_overall_mastery(&asylum, &city, &origins, &knight);
+
+        assert!((overall["Alice"] - 0.7).abs() < 1e-12); // (1.0 + 0.6 + 0.4 + 0.8) / 4 = 0.7
+        assert!((overall["Bob"] - 0.3).abs() < 1e-12); // (0.8 + 0.4) / 4 = 0.3
+        assert!((overall["Cara"] - 0.25).abs() < 1e-12); // 1.0 / 4 = 0.25
+        assert_eq!(overall.len(), 3);
     }
 }
