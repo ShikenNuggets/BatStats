@@ -559,34 +559,34 @@ pub struct OutputType {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let skip_upload = std::env::args().any(|arg| arg == "--skip-upload");
 
-    if !skip_upload {
-        let key = "GITHUB_TOKEN";
-        match env::var(key) {
-            Ok(_) => (),
-            Err(env::VarError::NotPresent) => {
-                println!("You must set the GITHUB_TOKEN environment variable");
-                return;
+    let github_token = if !skip_upload {
+        let token = env::var("GITHUB_TOKEN").map_err(|err| match err {
+            env::VarError::NotPresent => {
+                "You must set the GITHUB_TOKEN environment variable unless --skip-upload is set"
+                    .to_string()
             }
-            Err(env::VarError::NotUnicode(_)) => {
-                println!("GITHUB_TOKEN envar exists, but is not valid Unicode");
-                return;
+            env::VarError::NotUnicode(_) => {
+                "GITHUB_TOKEN environment variable exists, but is not valid Unicode".to_string()
             }
-        }
+        })?;
 
         // Validate the GitHub token by trying to read the gist
-        if let Err(e) = gist_upload::validate_github_token().await {
-            println!(
-                "GitHub token was invalid or did not have access to the gist: {}",
-                e
-            );
-            return;
-        }
+        gist_upload::validate_github_token(&token)
+            .await
+            .map_err(|e| {
+                format!(
+                    "GitHub token was invalid or did not have access to the gist: {}",
+                    e
+                )
+            })?;
+        Some(token)
     } else {
         println!("Gist upload is disabled (--skip-upload flag is set)");
-    }
+        None
+    };
 
     println!("Getting initial leaderboard data...");
     let asylum_leaderboards = src_api::get_all_fullgame_leaderboards(asylum::GAME_ID).await;
@@ -655,21 +655,24 @@ async fn main() {
     let meta_data = MetaData { date: Utc::now() };
     output_data.meta = serde_json::to_string(&meta_data).unwrap();
 
-    let dir = Path::new("BatStats.json").parent().unwrap();
-    if !dir.exists() {
-        fs::create_dir_all(dir).await.unwrap();
+    let output_path = Path::new("BatStats.json");
+    if let Some(dir) = output_path.parent()
+        && !dir.as_os_str().is_empty()
+        && !dir.exists()
+    {
+        fs::create_dir_all(dir).await?;
     }
 
-    let content = serde_json::to_string(&output_data).unwrap();
-    if let Err(e) = fs::write("BatStats.json", content).await {
-        eprintln!("Could not write to file! Error: {}", e);
-    }
+    let content = serde_json::to_string(&output_data)?;
+    fs::write(output_path, content).await?;
 
-    if !skip_upload {
-        gist_upload::upload_gist("BatStats.json").await.unwrap();
+    if let Some(token) = github_token.as_deref() {
+        gist_upload::upload_gist("BatStats.json", token).await?;
     } else {
         println!("Skipping gist upload (--skip-upload flag is set)");
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
