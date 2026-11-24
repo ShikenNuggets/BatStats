@@ -1,11 +1,11 @@
-use reqwest::{Client, Response};
+use crate::speedrun_api::http_utils;
+use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::fs;
 
 const GIST_ID: &str = "3adaa36be92dfb82f43b951b91387c1a";
 const GIST_FILE: &str = "BatStats.json";
-const USER_AGENT: &str = "rust-git-uploader";
 
 #[derive(Serialize)]
 struct GistFile {
@@ -47,10 +47,9 @@ async fn validate_github_token_at_url(
         return Err("GITHUB_TOKEN is empty".into());
     }
 
-    let client = Client::new();
+    let client = http_utils::http_client();
     let response = client
         .get(gist_url)
-        .header("User-Agent", USER_AGENT)
         .bearer_auth(github_token)
         .send()
         .await?;
@@ -105,10 +104,9 @@ async fn upload_gist_at_url(
     );
     let payload = GistUpdateRequest { files };
 
-    let client = Client::new();
+    let client = http_utils::http_client();
     let response = client
         .patch(gist_url)
-        .header("User-Agent", USER_AGENT)
         .bearer_auth(github_token)
         .json(&payload)
         .send()
