@@ -154,7 +154,7 @@ pub async fn get_best_hundo_times() -> HashMap<String, f64> {
     )
     .await;
     if knightfall_full.is_none() {
-        println!("Failed to get all Any% boards for Knight");
+        println!("Failed to get all 100% boards for Knight");
         return HashMap::new();
     }
 
