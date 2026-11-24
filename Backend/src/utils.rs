@@ -174,18 +174,21 @@ async fn get_total_runner_times(
         }
 
         let fastest_time = fastest_time.unwrap();
-        let slowest_time = slowest_time.unwrap() - fastest_time;
+        let slowest_time = slowest_time.unwrap();
+        let missing_penalty = if subtract_from_wr {
+            slowest_time - fastest_time
+        } else {
+            slowest_time
+        };
 
         for runner in &all_runners {
-            let mut time_to_add = slowest_time;
-            if times.contains_key(runner) {
-                time_to_add = times[runner];
-                if subtract_from_wr {
-                    time_to_add -= fastest_time;
-                }
-            }
+            let time_to_add = match times.get(runner) {
+                Some(&runner_time) if subtract_from_wr => runner_time - fastest_time,
+                Some(&runner_time) => runner_time,
+                None => missing_penalty,
+            };
 
-            runner_times.insert(runner.to_string(), runner_times[runner] + time_to_add);
+            *runner_times.entry(runner.clone()).or_insert(0.0) += time_to_add;
         }
     }
 
@@ -393,5 +396,42 @@ mod tests {
 
         let avg = get_adjusted_average_time(&lb);
         assert_eq!(avg, Some(140.0));
+    }
+
+    #[tokio::test]
+    async fn test_get_total_runner_times_missing_runner_penalty() {
+        let cat: crate::speedrun_api::types::category::Category =
+            serde_json::from_value(serde_json::json!({
+                "id": "cat1",
+                "name": "Any%",
+                "weblink": "https://example.com/cat1",
+                "type": "per-game",
+                "rules": "",
+                "players": { "type": "exactly", "value": 1 },
+                "miscellaneous": false,
+                "links": []
+            }))
+            .expect("valid test category");
+        crate::speedrun_api::src_cache::CATEGORY_CACHE.insert(&cat);
+
+        let lb1 = make_leaderboard(vec![
+            (1, 100.0, vec!["RunnerA"]),
+            (2, 150.0, vec!["RunnerB"]),
+        ]);
+        let lb2 = make_leaderboard(vec![
+            (1, 200.0, vec!["RunnerA"]),
+            (2, 260.0, vec!["RunnerC"]),
+        ]);
+        let boards = vec![lb1, lb2];
+
+        let raw_totals = get_total_runner_times(&boards, false).await;
+        assert_eq!(raw_totals.get("RunnerA"), Some(&300.0));
+        assert_eq!(raw_totals.get("RunnerB"), Some(&410.0));
+        assert_eq!(raw_totals.get("RunnerC"), Some(&410.0));
+
+        let delta_totals = get_total_runner_times(&boards, true).await;
+        assert_eq!(delta_totals.get("RunnerA"), Some(&0.0));
+        assert_eq!(delta_totals.get("RunnerB"), Some(&110.0));
+        assert_eq!(delta_totals.get("RunnerC"), Some(&110.0));
     }
 }
