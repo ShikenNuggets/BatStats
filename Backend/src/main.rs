@@ -43,26 +43,31 @@ async fn get_player_name(player: &RunPlayer) -> Option<String> {
     Some(user.unwrap().names.international)
 }
 
+/// Counts world records (`place == 1`) per primary runner across all provided leaderboards.
+///
+/// Intentionally includes `miscellaneous` categories; tied `place == 1` holders on a leaderboard
+/// are all credited (deduplicated per player within a single board).
 async fn get_world_records(leaderboards: &Vec<Leaderboard>) -> HashMap<String, i32> {
     let mut world_records: HashMap<String, i32> = HashMap::new();
     for lb in leaderboards {
-        let wr_run = lb.runs.first();
-        if !wr_run.is_some() {
-            continue;
-        }
+        let mut seen_players = HashSet::new();
+        for run in &lb.runs {
+            if run.place != 1 {
+                continue;
+            }
 
-        let player = &wr_run.unwrap().run.players.first();
-        if !player.is_some() {
-            continue;
-        }
+            let Some(player) = run.run.players.first() else {
+                continue;
+            };
+            let Some(player_name) = get_player_name(player).await else {
+                continue;
+            };
+            if !seen_players.insert(player_name.clone()) {
+                continue;
+            }
 
-        let player_name = get_player_name(player.unwrap()).await;
-        if player_name.is_none() {
-            continue;
+            *world_records.entry(player_name).or_insert(0) += 1;
         }
-
-        let player_name = player_name.unwrap();
-        *world_records.entry(player_name).or_insert(0) += 1;
     }
 
     world_records
@@ -176,8 +181,7 @@ async fn get_total_runner_times(
     }
 
     for leaderboard in leaderboards {
-        let api_category = src_api::get_category(&leaderboard.category).await;
-        if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous {
+        if utils::should_exclude_misc_category(leaderboard).await {
             continue;
         }
 
@@ -224,8 +228,7 @@ async fn get_all_runner_ranks(leaderboards: &Vec<Leaderboard>) -> HashMap<String
     }
 
     for leaderboard in leaderboards {
-        let api_category = src_api::get_category(&leaderboard.category).await;
-        if api_category.is_none() || api_category.unwrap().miscellaneous {
+        if utils::should_exclude_misc_category(leaderboard).await {
             continue;
         }
 
@@ -369,42 +372,45 @@ fn sort_oldest_world_records(world_records: &mut [WorldRecordInfo]) {
     });
 }
 
+/// Collects all dated `place == 1` world records across all provided leaderboards, including
+/// `miscellaneous` categories and tied world record holders, sorted oldest-first.
 async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldRecordInfo> {
     let mut world_records: Vec<WorldRecordInfo> = Vec::new();
 
     for lb in leaderboards {
-        let wr_run = lb.runs.first();
-        if !wr_run.is_some() {
+        let wr_runs: Vec<_> = lb.runs.iter().filter(|run| run.place == 1).collect();
+        if wr_runs.is_empty() {
             continue;
         }
-        let wr_run = wr_run.unwrap();
-
-        let player = &wr_run.run.players.first();
-        if !player.is_some() {
-            continue;
-        }
-
-        let player_name = get_player_name(player.unwrap()).await;
-        if player_name.is_none() {
-            continue;
-        }
-        let player_name = player_name.unwrap();
 
         let category_name = utils::get_full_category_name(lb).await;
+        let mut seen_players = HashSet::new();
 
-        let date = match wr_run.run.date {
-            Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(
-                naive_date.and_hms_opt(0, 0, 0).unwrap(),
-                Utc,
-            ),
-            None => continue,
-        };
+        for wr_run in wr_runs {
+            let Some(player) = wr_run.run.players.first() else {
+                continue;
+            };
+            let Some(player_name) = get_player_name(player).await else {
+                continue;
+            };
+            if !seen_players.insert(player_name.clone()) {
+                continue;
+            }
 
-        world_records.push(WorldRecordInfo {
-            player_name,
-            category_name,
-            date,
-        });
+            let date = match wr_run.run.date {
+                Some(naive_date) => DateTime::<Utc>::from_naive_utc_and_offset(
+                    naive_date.and_hms_opt(0, 0, 0).unwrap(),
+                    Utc,
+                ),
+                None => continue,
+            };
+
+            world_records.push(WorldRecordInfo {
+                player_name,
+                category_name: category_name.clone(),
+                date,
+            });
+        }
     }
 
     sort_oldest_world_records(&mut world_records);
@@ -929,5 +935,120 @@ mod tests {
         assert_eq!(delta_totals.get("RunnerA"), Some(&0.0));
         assert_eq!(delta_totals.get("RunnerB"), Some(&110.0));
         assert_eq!(delta_totals.get("RunnerC"), Some(&110.0));
+    }
+
+    #[tokio::test]
+    async fn test_tied_world_records_and_misc_policy() {
+        let game: crate::speedrun_api::types::game::Game =
+            serde_json::from_value(serde_json::json!({
+                "id": "game_be10",
+                "names": {
+                    "international": "Batman: Arkham City",
+                    "japanese": null,
+                    "twitch": null
+                },
+                "abbreviation": "bac",
+                "weblink": "https://example.com/game_be10",
+                "released": 2011,
+                "release-date": "2011-10-18",
+                "ruleset": {
+                    "show-milliseconds": true,
+                    "require-verification": true,
+                    "require-video": false,
+                    "run-times": ["realtime"],
+                    "default-time": "realtime",
+                    "emulators-allowed": false
+                },
+                "romhack": false,
+                "gametypes": [],
+                "platforms": [],
+                "regions": [],
+                "genres": [],
+                "engines": [],
+                "developers": [],
+                "publishers": [],
+                "moderators": {},
+                "created": null
+            }))
+            .expect("valid test game");
+        crate::speedrun_api::src_cache::GAME_CACHE.insert(&game);
+
+        let main_cat: crate::speedrun_api::types::category::Category =
+            serde_json::from_value(serde_json::json!({
+                "id": "cat_main_be10",
+                "name": "Any%",
+                "weblink": "https://example.com/cat_main_be10",
+                "type": "per-game",
+                "rules": "",
+                "players": { "type": "exactly", "value": 1 },
+                "miscellaneous": false,
+                "links": []
+            }))
+            .expect("valid test category");
+        crate::speedrun_api::src_cache::CATEGORY_CACHE.insert(&main_cat);
+
+        let misc_cat: crate::speedrun_api::types::category::Category =
+            serde_json::from_value(serde_json::json!({
+                "id": "cat_misc_be10",
+                "name": "NG+ Glitchless",
+                "weblink": "https://example.com/cat_misc_be10",
+                "type": "per-game",
+                "rules": "",
+                "players": { "type": "exactly", "value": 1 },
+                "miscellaneous": true,
+                "links": []
+            }))
+            .expect("valid test misc category");
+        crate::speedrun_api::src_cache::CATEGORY_CACHE.insert(&misc_cat);
+
+        let mut lb_main = make_leaderboard(vec![
+            (1, 100.0, vec!["RunnerB"]),
+            (1, 100.0, vec!["RunnerA"]),
+            (3, 150.0, vec!["RunnerC"]),
+        ]);
+        lb_main.game = "game_be10".to_string();
+        lb_main.category = "cat_main_be10".to_string();
+
+        let mut lb_misc = make_leaderboard(vec![
+            (1, 200.0, vec!["RunnerA"]),
+            (1, 200.0, vec!["RunnerA"]), // Same runner twice on one board shouldn't double-count
+        ]);
+        lb_misc.game = "game_be10".to_string();
+        lb_misc.category = "cat_misc_be10".to_string();
+
+        let boards = vec![lb_main, lb_misc];
+
+        // WRs include misc boards and credit both tied place == 1 runners
+        let wrs = get_world_records(&boards).await;
+        assert_eq!(wrs.get("RunnerA"), Some(&2));
+        assert_eq!(wrs.get("RunnerB"), Some(&1));
+        assert_eq!(wrs.get("RunnerC"), None);
+
+        // Oldest WRs include all tied place == 1 holders across main + misc boards
+        let oldest = get_oldest_world_records(&boards).await;
+        assert_eq!(oldest.len(), 3);
+        let pairs: Vec<(&str, &str)> = oldest
+            .iter()
+            .map(|r| (r.category_name.as_str(), r.player_name.as_str()))
+            .collect();
+        assert_eq!(
+            pairs,
+            vec![
+                ("City - Any%", "RunnerA"),
+                ("City - Any%", "RunnerB"),
+                ("City - NG+ Glitchless", "RunnerA"),
+            ]
+        );
+
+        // Penalty aggregates exclude misc categories consistently
+        let totals = get_total_runner_times(&boards, true).await;
+        assert_eq!(totals.get("RunnerA"), Some(&0.0));
+        assert_eq!(totals.get("RunnerB"), Some(&0.0));
+        assert_eq!(totals.get("RunnerC"), Some(&50.0));
+
+        let ranks = get_all_runner_ranks(&boards).await;
+        assert_eq!(ranks.get("RunnerA"), Some(&0));
+        assert_eq!(ranks.get("RunnerB"), Some(&0));
+        assert_eq!(ranks.get("RunnerC"), Some(&2));
     }
 }

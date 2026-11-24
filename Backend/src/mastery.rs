@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     speedrun_api::{src_api, types::leaderboard::Leaderboard},
@@ -25,11 +25,11 @@ pub fn calculate_mastery(wr: f64, average: f64, run_time: f64) -> f64 {
     (average - run_time) / (average - wr)
 }
 
+/// Computes per-player mastery scores (`0.0..=1.0`) and distinct valid runner count for a single
+/// leaderboard. Intentionally retains `miscellaneous` categories so mastery weights all full-game
+/// categories by unique runner participation.
 pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData {
-    let mut raw_mastery = RawMasteryData {
-        num_players: leaderboard.runs.len() as i64,
-        ..Default::default()
-    };
+    let mut raw_mastery = RawMasteryData::default();
 
     let fastest_time = utils::get_fastest_time(leaderboard);
     if fastest_time.is_none() {
@@ -45,12 +45,9 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
     }
     let average_time = average_time.unwrap();
 
-    for run in &leaderboard.runs {
-        let mastery = calculate_mastery(fastest_time, average_time, run.run.times.primary_t);
-        if mastery <= 0.0 {
-            continue;
-        }
+    let mut distinct_players: HashSet<String> = HashSet::new();
 
+    for run in &leaderboard.runs {
         let Some(player) = run.run.players.first() else {
             println!("Run {} had no players", run.run.id);
             continue;
@@ -61,6 +58,13 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
             continue;
         };
 
+        distinct_players.insert(player_name.clone());
+
+        let mastery = calculate_mastery(fastest_time, average_time, run.run.times.primary_t);
+        if mastery <= 0.0 {
+            continue;
+        }
+
         // Keep only the best (highest) mastery for this player
         raw_mastery
             .mastery_percents
@@ -69,6 +73,7 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
             .or_insert(mastery);
     }
 
+    raw_mastery.num_players = distinct_players.len() as i64;
     raw_mastery
 }
 
@@ -294,5 +299,112 @@ mod tests {
             mastery_percents: HashMap::from([("RunnerA".to_string(), 1.0)]),
         }];
         assert!(aggregate_game_mastery(&zero_data).is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_raw_mastery_ranks_counts_distinct_valid_players() {
+        let lb: Leaderboard = serde_json::from_value(serde_json::json!({
+            "weblink": "https://example.com/lb",
+            "game": "game1",
+            "category": "cat1",
+            "level": null,
+            "platform": null,
+            "region": null,
+            "emulators": null,
+            "video-only": false,
+            "timing": "realtime",
+            "values": {},
+            "links": [],
+            "runs": [
+                {
+                    "place": 1,
+                    "run": {
+                        "id": "run_a1",
+                        "weblink": "https://example.com/runs/run_a1",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [
+                            { "rel": "guest", "id": null, "name": "RunnerA", "uri": "https://example.com/guests/RunnerA" }
+                        ],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT100S", "primary_t": 100.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                },
+                {
+                    "place": 2,
+                    "run": {
+                        "id": "run_a2",
+                        "weblink": "https://example.com/runs/run_a2",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [
+                            { "rel": "guest", "id": null, "name": "RunnerA", "uri": "https://example.com/guests/RunnerA" }
+                        ],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT120S", "primary_t": 120.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                },
+                {
+                    "place": 3,
+                    "run": {
+                        "id": "run_empty",
+                        "weblink": "https://example.com/runs/run_empty",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT130S", "primary_t": 130.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                },
+                {
+                    "place": 4,
+                    "run": {
+                        "id": "run_slow",
+                        "weblink": "https://example.com/runs/run_slow",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [
+                            { "rel": "guest", "id": null, "name": "RunnerB", "uri": "https://example.com/guests/RunnerB" }
+                        ],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT250S", "primary_t": 250.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                }
+            ]
+        }))
+        .expect("valid test leaderboard");
+
+        let raw = get_raw_mastery_ranks(&lb).await;
+        assert_eq!(raw.num_players, 2);
+        assert_eq!(raw.mastery_percents.get("RunnerA"), Some(&1.0));
+        assert!(!raw.mastery_percents.contains_key("RunnerB"));
     }
 }

@@ -144,6 +144,19 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
     run_times
 }
 
+/// Returns `true` when `leaderboard`'s category should be excluded from missing-run penalty
+/// aggregates (`runner_times` and `runner_ranks`) because its category is marked `miscellaneous`
+/// or cannot be resolved from speedrun.com.
+///
+/// World record counts (`get_world_records`, `get_oldest_world_records`) and Mastery calculations
+/// intentionally retain miscellaneous categories.
+pub async fn should_exclude_misc_category(leaderboard: &Leaderboard) -> bool {
+    let Some(api_category) = src_api::get_category(&leaderboard.category).await else {
+        return true;
+    };
+    api_category.miscellaneous
+}
+
 async fn get_total_runner_times(
     leaderboards: &Vec<Leaderboard>,
     subtract_from_wr: bool,
@@ -156,8 +169,7 @@ async fn get_total_runner_times(
     }
 
     for leaderboard in leaderboards {
-        let api_category = src_api::get_category(&leaderboard.category).await;
-        if api_category.is_none() || api_category.as_ref().unwrap().miscellaneous {
+        if should_exclude_misc_category(leaderboard).await {
             continue;
         }
 
