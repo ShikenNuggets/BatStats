@@ -103,9 +103,13 @@ pub fn get_adjusted_average_time(leaderboard: &Leaderboard) -> Option<f64> {
         total_time += run.run.times.primary_t;
     }
 
+    if num_times == 0 {
+        return Some(real_average);
+    }
+
     let adjusted_average = total_time / (num_times as f64);
 
-    if adjusted_average <= 0.0 || adjusted_average > real_average || num_times == 0 {
+    if !adjusted_average.is_finite() || adjusted_average <= 0.0 || adjusted_average > real_average {
         return Some(real_average);
     }
 
@@ -372,5 +376,22 @@ mod tests {
         let times = get_runner_times_map(&lb).await;
         assert_eq!(times.get("PrimaryRunner"), Some(&120.0));
         assert!(!times.contains_key("CoopPartner"));
+    }
+
+    #[test]
+    fn test_get_adjusted_average_time_all_dateless_runs() {
+        let mut lb = make_leaderboard(vec![
+            (1, 100.0, vec!["R1"]),
+            (2, 120.0, vec!["R2"]),
+            (3, 140.0, vec!["R3"]),
+            (4, 160.0, vec!["R4"]),
+            (5, 180.0, vec!["R5"]),
+        ]);
+        for run in &mut lb.runs {
+            run.run.date = None;
+        }
+
+        let avg = get_adjusted_average_time(&lb);
+        assert_eq!(avg, Some(140.0));
     }
 }

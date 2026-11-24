@@ -357,6 +357,15 @@ pub struct WorldRecordInfo {
     pub date: DateTime<Utc>,
 }
 
+fn sort_oldest_world_records(world_records: &mut [WorldRecordInfo]) {
+    world_records.sort_by(|a, b| {
+        a.date
+            .cmp(&b.date)
+            .then_with(|| a.category_name.cmp(&b.category_name))
+            .then_with(|| a.player_name.cmp(&b.player_name))
+    });
+}
+
 async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldRecordInfo> {
     let mut world_records: Vec<WorldRecordInfo> = Vec::new();
 
@@ -395,7 +404,7 @@ async fn get_oldest_world_records(leaderboards: &Vec<Leaderboard>) -> Vec<WorldR
         });
     }
 
-    world_records.sort_by_key(|wr| wr.date);
+    sort_oldest_world_records(&mut world_records);
     world_records
 }
 
@@ -404,27 +413,41 @@ enum Ordering {
     HigherIsBetter,
 }
 
-fn get_sorted_values<T: PartialOrd>(map: HashMap<String, T>, order: Ordering) -> Vec<(String, T)> {
+fn get_sorted_values<T: Copy + Into<f64>>(
+    map: HashMap<String, T>,
+    order: Ordering,
+) -> Vec<(String, T)> {
     let mut vec: Vec<(String, T)> = map.into_iter().collect();
     vec.sort_by(|a, b| {
-        if let Ordering::LowerIsBetter = order {
-            a.1.partial_cmp(&b.1).unwrap()
-        } else {
-            b.1.partial_cmp(&a.1).unwrap()
-        }
+        let a_val: f64 = a.1.into();
+        let b_val: f64 = b.1.into();
+        let cmp = match order {
+            Ordering::LowerIsBetter => a_val.total_cmp(&b_val),
+            Ordering::HigherIsBetter => b_val.total_cmp(&a_val),
+        };
+        cmp.then_with(|| a.0.cmp(&b.0))
     });
 
     vec
 }
 
-fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry> {
+const TIE_EPSILON: f64 = 1e-9;
+
+fn get_values_as_data_entries<T: Into<f64>>(data: Vec<(String, T)>) -> Vec<DataEntry> {
     let mut result = Vec::with_capacity(data.len());
     let mut prev_value: Option<f64> = None;
     let mut prev_rank: i64 = 0;
 
     for (index, (player, value)) in data.into_iter().enumerate() {
         let value_f64 = value.into();
-        let rank = if Some(value_f64) == prev_value {
+        let is_tie = prev_value.is_some_and(|prev| {
+            (value_f64.is_nan() && prev.is_nan())
+                || (value_f64.is_finite()
+                    && prev.is_finite()
+                    && (value_f64 - prev).abs() < TIE_EPSILON)
+                || (value_f64 == prev)
+        });
+        let rank = if is_tie {
             prev_rank
         } else {
             (index as i64) + 1
@@ -443,7 +466,7 @@ fn get_values_as_data_entries<T: PartialEq + Into<f64>>(data: Vec<(String, T)>) 
     result
 }
 
-fn serialize_to_json<T: PartialOrd + Into<f64> + Serialize>(
+fn serialize_to_json<T: Copy + Into<f64> + Serialize>(
     map: HashMap<String, T>,
     order: Ordering,
 ) -> String {
@@ -752,5 +775,113 @@ mod tests {
         let ranks = get_runner_ranks_map(&lb).await;
         assert_eq!(ranks.get("RunnerA"), Some(&0));
         assert_eq!(ranks.get("RunnerB"), Some(&1));
+    }
+
+    #[test]
+    fn test_get_sorted_values_handles_nan_without_panic() {
+        let map = HashMap::from([
+            ("RunnerA".to_string(), 100.0_f64),
+            ("RunnerNaN".to_string(), f64::NAN),
+            ("RunnerB".to_string(), 50.0_f64),
+        ]);
+
+        let asc = get_sorted_values(map.clone(), Ordering::LowerIsBetter);
+        assert_eq!(asc.len(), 3);
+        assert_eq!(asc[0].0, "RunnerB");
+        assert_eq!(asc[1].0, "RunnerA");
+        assert_eq!(asc[2].0, "RunnerNaN");
+
+        let desc = get_sorted_values(map, Ordering::HigherIsBetter);
+        assert_eq!(desc.len(), 3);
+        assert_eq!(desc[0].0, "RunnerNaN");
+        assert_eq!(desc[1].0, "RunnerA");
+        assert_eq!(desc[2].0, "RunnerB");
+    }
+
+    #[test]
+    fn test_get_sorted_values_and_data_entries_deterministic_ties() {
+        let map = HashMap::from([
+            ("Charlie".to_string(), 10.0),
+            ("Alice".to_string(), 10.0),
+            ("Bob".to_string(), 10.0),
+            ("Dave".to_string(), 20.0),
+        ]);
+
+        let first = get_sorted_values(map.clone(), Ordering::LowerIsBetter);
+        for _ in 0..10 {
+            let repeated = get_sorted_values(map.clone(), Ordering::LowerIsBetter);
+            assert_eq!(repeated, first);
+        }
+        assert_eq!(
+            first.iter().map(|(p, _)| p.as_str()).collect::<Vec<_>>(),
+            vec!["Alice", "Bob", "Charlie", "Dave"]
+        );
+
+        // Verify epsilon tie ranking handles float summation drift (0.1 + 0.2 vs 0.3)
+        let entries = get_values_as_data_entries(vec![
+            ("Alice".to_string(), 0.1_f64 + 0.2_f64),
+            ("Bob".to_string(), 0.3_f64),
+            ("Charlie".to_string(), 0.4_f64),
+        ]);
+        assert_eq!(entries[0].rank, 1);
+        assert_eq!(entries[1].rank, 1);
+        assert_eq!(entries[2].rank, 3);
+    }
+
+    #[test]
+    fn test_sort_oldest_world_records_deterministic_tie_order() {
+        let d1 = DateTime::<Utc>::from_naive_utc_and_offset(
+            chrono::NaiveDate::from_ymd_opt(2020, 1, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
+            Utc,
+        );
+        let d2 = DateTime::<Utc>::from_naive_utc_and_offset(
+            chrono::NaiveDate::from_ymd_opt(2021, 5, 1)
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap(),
+            Utc,
+        );
+
+        let mut records = vec![
+            WorldRecordInfo {
+                player_name: "Zed".to_string(),
+                category_name: "City - Any%".to_string(),
+                date: d1,
+            },
+            WorldRecordInfo {
+                player_name: "Bob".to_string(),
+                category_name: "Asylum - Any%".to_string(),
+                date: d2,
+            },
+            WorldRecordInfo {
+                player_name: "Alice".to_string(),
+                category_name: "City - Any%".to_string(),
+                date: d1,
+            },
+            WorldRecordInfo {
+                player_name: "Cara".to_string(),
+                category_name: "Asylum - Any%".to_string(),
+                date: d1,
+            },
+        ];
+
+        sort_oldest_world_records(&mut records);
+
+        let order: Vec<(&str, &str)> = records
+            .iter()
+            .map(|r| (r.category_name.as_str(), r.player_name.as_str()))
+            .collect();
+        assert_eq!(
+            order,
+            vec![
+                ("Asylum - Any%", "Cara"),
+                ("City - Any%", "Alice"),
+                ("City - Any%", "Zed"),
+                ("Asylum - Any%", "Bob"),
+            ]
+        );
     }
 }

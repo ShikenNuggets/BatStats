@@ -12,6 +12,10 @@ pub struct RawMasteryData {
 }
 
 pub fn calculate_mastery(wr: f64, average: f64, run_time: f64) -> f64 {
+    if !wr.is_finite() || !average.is_finite() || !run_time.is_finite() || average <= wr {
+        return 0.0;
+    }
+
     if run_time <= wr {
         return 1.0;
     } else if run_time >= average {
@@ -68,34 +72,39 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
     raw_mastery
 }
 
-pub async fn get_mastery_ranks_for_game(game_id: &str) -> HashMap<String, f64> {
-    let mut raw_mastery_datas: Vec<RawMasteryData> = Vec::new();
-    let mut total_players: i64 = 0;
-
-    let boards = src_api::get_all_fullgame_leaderboards(game_id).await;
-    for board in boards {
-        let raw_data = get_raw_mastery_ranks(&board).await;
-        total_players += raw_data.num_players;
-        raw_mastery_datas.push(raw_data);
+pub fn aggregate_game_mastery(raw_mastery_datas: &[RawMasteryData]) -> HashMap<String, f64> {
+    let total_players: i64 = raw_mastery_datas.iter().map(|d| d.num_players).sum();
+    if total_players <= 0 {
+        return HashMap::new();
     }
 
     let mut overall_mastery = HashMap::new();
 
-    for raw_data in raw_mastery_datas.iter() {
+    for raw_data in raw_mastery_datas {
         let percent_relevance = (raw_data.num_players as f64) / (total_players as f64);
 
-        for entry in raw_data.mastery_percents.iter() {
-            let weighted_mastery = entry.1 * percent_relevance;
-            if overall_mastery.contains_key(entry.0) {
-                let new_mastery = overall_mastery[entry.0] + weighted_mastery;
-                overall_mastery.insert(entry.0.clone(), new_mastery);
-            } else {
-                overall_mastery.insert(entry.0.clone(), weighted_mastery);
-            }
+        for (player, mastery) in &raw_data.mastery_percents {
+            let weighted_mastery = mastery * percent_relevance;
+            overall_mastery
+                .entry(player.clone())
+                .and_modify(|m| *m += weighted_mastery)
+                .or_insert(weighted_mastery);
         }
     }
 
     overall_mastery
+}
+
+pub async fn get_mastery_ranks_for_game(game_id: &str) -> HashMap<String, f64> {
+    let mut raw_mastery_datas: Vec<RawMasteryData> = Vec::new();
+
+    let boards = src_api::get_all_fullgame_leaderboards(game_id).await;
+    for board in boards {
+        let raw_data = get_raw_mastery_ranks(&board).await;
+        raw_mastery_datas.push(raw_data);
+    }
+
+    aggregate_game_mastery(&raw_mastery_datas)
 }
 
 #[cfg(test)]
@@ -263,5 +272,27 @@ mod tests {
         let raw = get_raw_mastery_ranks(&lb).await;
         assert!(raw.mastery_percents.contains_key("PrimaryRunner"));
         assert!(!raw.mastery_percents.contains_key("CoopPartner"));
+    }
+
+    #[test]
+    fn test_calculate_mastery_non_finite_and_invalid_bounds() {
+        assert_eq!(calculate_mastery(100.0, 100.0, 100.0), 0.0);
+        assert_eq!(calculate_mastery(200.0, 100.0, 150.0), 0.0);
+        assert_eq!(calculate_mastery(f64::NAN, 200.0, 150.0), 0.0);
+        assert_eq!(calculate_mastery(100.0, f64::NAN, 150.0), 0.0);
+        assert_eq!(calculate_mastery(100.0, 200.0, f64::NAN), 0.0);
+        assert_eq!(calculate_mastery(100.0, f64::INFINITY, 150.0), 0.0);
+        assert_eq!(calculate_mastery(100.0, 200.0, f64::NEG_INFINITY), 0.0);
+    }
+
+    #[test]
+    fn test_aggregate_game_mastery_zero_total_players() {
+        assert!(aggregate_game_mastery(&[]).is_empty());
+
+        let zero_data = vec![RawMasteryData {
+            num_players: 0,
+            mastery_percents: HashMap::from([("RunnerA".to_string(), 1.0)]),
+        }];
+        assert!(aggregate_game_mastery(&zero_data).is_empty());
     }
 }
