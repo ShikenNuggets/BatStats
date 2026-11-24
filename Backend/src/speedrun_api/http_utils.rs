@@ -42,7 +42,9 @@ async fn get_http_result_internal(url: Url) -> Result<String, Box<dyn Error>> {
 
 pub fn parse_to_url(base_url: &str, args: &HashMap<String, String>) -> Result<Url, Box<dyn Error>> {
     let mut url = Url::parse(base_url)?;
-    url.query_pairs_mut().extend_pairs(args.iter());
+    let mut sorted_args: Vec<(&String, &String)> = args.iter().collect();
+    sorted_args.sort_by(|a, b| a.0.cmp(b.0).then_with(|| a.1.cmp(b.1)));
+    url.query_pairs_mut().extend_pairs(sorted_args);
     Ok(url)
 }
 
@@ -59,4 +61,39 @@ pub async fn get_http_result_with_args(
     let final_url = parse_to_url(base_url, &args)?;
     let result = get_http_result_internal(final_url).await?;
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_to_url_sorts_query_parameters_deterministically() {
+        let args_a = HashMap::from([
+            ("var-zeta".to_string(), "2".to_string()),
+            ("var-alpha".to_string(), "1".to_string()),
+            ("embed".to_string(), "players".to_string()),
+        ]);
+        let args_b = HashMap::from([
+            ("embed".to_string(), "players".to_string()),
+            ("var-alpha".to_string(), "1".to_string()),
+            ("var-zeta".to_string(), "2".to_string()),
+        ]);
+
+        let expected = "https://www.speedrun.com/api/v1/leaderboards/g/category/c?embed=players&var-alpha=1&var-zeta=2";
+        for _ in 0..20 {
+            let url_a = parse_to_url(
+                "https://www.speedrun.com/api/v1/leaderboards/g/category/c",
+                &args_a,
+            )
+            .unwrap();
+            let url_b = parse_to_url(
+                "https://www.speedrun.com/api/v1/leaderboards/g/category/c",
+                &args_b,
+            )
+            .unwrap();
+            assert_eq!(url_a.as_str(), expected);
+            assert_eq!(url_b.as_str(), expected);
+        }
+    }
 }

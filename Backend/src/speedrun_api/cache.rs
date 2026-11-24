@@ -20,4 +20,8 @@ impl<T: Cacheable + Clone> Cache<T> {
     pub fn insert(&self, value: &T) {
         self.map.insert(value.key(), value.clone());
     }
+
+    pub fn insert_with_key(&self, key: String, value: &T) {
+        self.map.insert(key, value.clone());
+    }
 }

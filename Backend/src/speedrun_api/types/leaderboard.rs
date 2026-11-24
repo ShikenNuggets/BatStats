@@ -48,18 +48,20 @@ pub fn get_leaderboard_cache_key(
     category: &str,
     variables: &HashMap<String, String>,
 ) -> String {
-    let mut key: String = Default::default();
-    key.reserve(game.len() + category.len() + 2 + (variables.len() * 16));
+    let mut sorted_vars: Vec<(&String, &String)> = variables.iter().collect();
+    sorted_vars.sort_by(|a, b| a.0.cmp(b.0).then_with(|| a.1.cmp(b.1)));
+
+    let mut key = String::with_capacity(game.len() + category.len() + 2 + (variables.len() * 16));
     key.push_str(game);
     key.push('_');
     key.push_str(category);
 
-    for pair in variables {
-        key.reserve(pair.0.len() + pair.1.len() + 2);
+    for (var_id, val_id) in sorted_vars {
+        key.reserve(var_id.len() + val_id.len() + 2);
         key.push('_');
-        key.push_str(pair.0);
+        key.push_str(var_id);
         key.push('_');
-        key.push_str(pair.1);
+        key.push_str(val_id);
     }
 
     key
@@ -74,4 +76,35 @@ impl traits::Cacheable for Leaderboard {
 #[derive(Deserialize)]
 pub struct LeaderboardResponse {
     pub data: Leaderboard,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_leaderboard_cache_key_is_order_independent() {
+        let vars_ab = HashMap::from([
+            ("var_z".to_string(), "val_2".to_string()),
+            ("var_a".to_string(), "val_1".to_string()),
+            ("var_m".to_string(), "val_3".to_string()),
+        ]);
+        let vars_ba = HashMap::from([
+            ("var_m".to_string(), "val_3".to_string()),
+            ("var_z".to_string(), "val_2".to_string()),
+            ("var_a".to_string(), "val_1".to_string()),
+        ]);
+
+        let expected = "game1_cat1_var_a_val_1_var_m_val_3_var_z_val_2";
+        for _ in 0..20 {
+            assert_eq!(
+                get_leaderboard_cache_key("game1", "cat1", &vars_ab),
+                expected
+            );
+            assert_eq!(
+                get_leaderboard_cache_key("game1", "cat1", &vars_ba),
+                expected
+            );
+        }
+    }
 }

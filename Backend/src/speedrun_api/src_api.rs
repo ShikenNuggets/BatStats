@@ -127,23 +127,28 @@ pub async fn get_leaderboard(
     category: &str,
     variables: &HashMap<String, String>,
 ) -> Option<types::leaderboard::Leaderboard> {
-    let str = format!(
-        "{}leaderboards/{}/category/{}",
-        API_BASE_URL, game, category
-    );
+    get_leaderboard_from_base_url(API_BASE_URL, game, category, variables).await
+}
 
-    let mut args: HashMap<String, String> = HashMap::new();
-    for var in variables {
-        args.insert(format!("var-{}", var.0), var.1.clone());
-    }
+async fn get_leaderboard_from_base_url(
+    base_url: &str,
+    game: &str,
+    category: &str,
+    variables: &HashMap<String, String>,
+) -> Option<types::leaderboard::Leaderboard> {
+    let url = format!("{base_url}leaderboards/{game}/category/{category}");
+
+    let args: HashMap<String, String> = variables
+        .iter()
+        .map(|(k, v)| (format!("var-{k}"), v.clone()))
+        .collect();
 
     let cache_key = types::leaderboard::get_leaderboard_cache_key(game, category, variables);
-    let cached_leaderboard = LEADERBOARD_CACHE.get(&cache_key);
-    if cached_leaderboard.is_some() {
-        return cached_leaderboard;
+    if let Some(cached_leaderboard) = LEADERBOARD_CACHE.get(&cache_key) {
+        return Some(cached_leaderboard);
     }
 
-    let result = http_utils::get_http_result_with_args(&str, args).await;
+    let result = http_utils::get_http_result_with_args(&url, args).await;
 
     let body = match result {
         Ok(body) => body,
@@ -164,7 +169,7 @@ pub async fn get_leaderboard(
         }
     };
 
-    LEADERBOARD_CACHE.insert(&map.data);
+    LEADERBOARD_CACHE.insert_with_key(cache_key, &map.data);
     Some(map.data)
 }
 
@@ -316,4 +321,73 @@ pub async fn get_variables_for_game(game_id: &str) -> Vec<Variable> {
 
     src_cache::ALL_VARS_CACHE.insert(str, map.data.clone());
     map.data
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn test_get_leaderboard_caches_by_request_key_even_when_response_values_differ() {
+        let payload = serde_json::json!({
+            "data": {
+                "weblink": "https://example.com/lb",
+                "game": "game_be06",
+                "category": "cat_be06",
+                "level": null,
+                "platform": null,
+                "region": null,
+                "emulators": null,
+                "video-only": false,
+                "timing": "realtime",
+                "values": {
+                    "extra_default_var": "default_val"
+                },
+                "runs": [],
+                "links": []
+            }
+        })
+        .to_string();
+
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind mock server");
+        let addr = listener.local_addr().expect("local addr");
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{payload}",
+            payload.len()
+        );
+
+        let server_task = tokio::spawn(async move {
+            // Serve exactly one HTTP request; a cache miss on the second call would fail.
+            if let Ok((mut stream, _)) = listener.accept().await {
+                let mut buf = [0u8; 4096];
+                let _ = stream.read(&mut buf).await;
+                let _ = stream.write_all(response.as_bytes()).await;
+            }
+        });
+
+        let base_url = format!("http://{addr}/");
+        let req_vars_1 = HashMap::from([
+            ("var_b".to_string(), "val_b".to_string()),
+            ("var_a".to_string(), "val_a".to_string()),
+        ]);
+        let req_vars_2 = HashMap::from([
+            ("var_a".to_string(), "val_a".to_string()),
+            ("var_b".to_string(), "val_b".to_string()),
+        ]);
+
+        let first =
+            get_leaderboard_from_base_url(&base_url, "game_be06", "cat_be06", &req_vars_1).await;
+        assert!(first.is_some());
+        server_task.await.expect("mock server task finished");
+
+        // Second request uses reverse insertion order and must hit cache despite differing response values
+        let second =
+            get_leaderboard_from_base_url(&base_url, "game_be06", "cat_be06", &req_vars_2).await;
+        assert!(second.is_some());
+        assert_eq!(second.unwrap().weblink, "https://example.com/lb");
+    }
 }
