@@ -35,9 +35,9 @@ pub struct Leaderboard {
     pub level: Option<String>,
     pub platform: Option<String>,
     pub region: Option<String>,
-    pub emulators: Option<String>,
+    pub emulators: Option<bool>,
     pub video_only: bool,
-    pub timing: TimingType,
+    pub timing: Option<TimingType>,
     pub values: HashMap<String, String>,
     pub runs: Vec<LeaderboardRun>,
     pub links: Vec<core::SrcLink>,
@@ -106,5 +106,43 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn test_leaderboard_nullable_timing_and_bool_emulators() {
+        let lb_bool: Leaderboard = serde_json::from_value(serde_json::json!({
+            "weblink": "https://example.com/lb",
+            "game": "g1",
+            "category": "c1",
+            "level": null,
+            "platform": null,
+            "region": null,
+            "emulators": true,
+            "video-only": false,
+            "timing": null,
+            "values": {},
+            "runs": [],
+            "links": [{ "rel": "derived-games", "uri": "https://example.com/derived" }]
+        }))
+        .expect("leaderboard with bool emulators and null timing should deserialize");
+        assert_eq!(lb_bool.emulators, Some(true));
+        assert!(lb_bool.timing.is_none());
+
+        let lb_null: Leaderboard = serde_json::from_value(serde_json::json!({
+            "weblink": "https://example.com/lb",
+            "game": "g1",
+            "category": "c1",
+            "level": null,
+            "platform": null,
+            "region": null,
+            "emulators": null,
+            "video-only": false,
+            "timing": null,
+            "values": {},
+            "runs": [],
+            "links": []
+        }))
+        .expect("leaderboard with null emulators should deserialize");
+        assert_eq!(lb_null.emulators, None);
     }
 }

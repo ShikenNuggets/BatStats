@@ -36,7 +36,7 @@ pub struct Category {
     #[serde(rename = "type")]
     pub category_type: CategoryType,
 
-    pub rules: String,
+    pub rules: Option<String>,
     pub players: CategoryPlayers,
     pub miscellaneous: bool,
     pub links: Vec<core::SrcLink>,
@@ -56,4 +56,25 @@ pub struct CategoryResponse {
 #[derive(Deserialize)]
 pub struct CategoriesResponse {
     pub data: Vec<Category>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_category_null_rules_deserializes() {
+        let cat: Category = serde_json::from_value(serde_json::json!({
+            "id": "cat1",
+            "name": "Any%",
+            "weblink": "https://www.speedrun.com/arkhamcity#Any",
+            "type": "per-game",
+            "rules": null,
+            "players": { "type": "exactly", "value": 1 },
+            "miscellaneous": false,
+            "links": []
+        }))
+        .expect("category with null rules should deserialize");
+        assert_eq!(cat.rules, None);
+    }
 }

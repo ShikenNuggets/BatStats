@@ -20,7 +20,7 @@ pub struct User {
     pub weblink: String,
     // TODO - name-styles
     pub role: String,
-    pub signup: DateTime<Utc>,
+    pub signup: Option<DateTime<Utc>>,
     // TODO - location
     // TODO - Twitch
     // TODO - Hitbox
@@ -40,4 +40,26 @@ impl traits::Cacheable for User {
 #[derive(Deserialize)]
 pub struct UserResponse {
     pub data: User,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_user_null_signup_deserializes() {
+        let user: User = serde_json::from_value(serde_json::json!({
+            "id": "user1",
+            "names": {
+                "international": "LegacyRunner",
+                "japanese": null
+            },
+            "pronouns": null,
+            "weblink": "https://www.speedrun.com/users/LegacyRunner",
+            "role": "user",
+            "signup": null
+        }))
+        .expect("user with null signup should deserialize");
+        assert_eq!(user.signup, None);
+    }
 }

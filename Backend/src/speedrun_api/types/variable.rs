@@ -26,7 +26,7 @@ pub struct VariableValue {
 
 #[derive(Clone, Deserialize)]
 pub struct VariableValues {
-    pub _note: String,
+    pub _note: Option<String>,
     pub choices: Option<HashMap<String, String>>,
     pub values: HashMap<String, VariableValue>,
     pub default: Option<String>,
@@ -61,4 +61,28 @@ pub struct VariableResponse {
 #[derive(Deserialize)]
 pub struct VariablesResponse {
     pub data: Vec<Variable>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_variable_optional_note_deserializes() {
+        let null_note: VariableValues = serde_json::from_value(serde_json::json!({
+            "_note": null,
+            "choices": null,
+            "values": {},
+            "default": null
+        }))
+        .expect("null _note should deserialize");
+        assert_eq!(null_note._note, None);
+
+        let omitted_note: VariableValues = serde_json::from_value(serde_json::json!({
+            "values": {},
+            "default": null
+        }))
+        .expect("omitted _note should deserialize");
+        assert_eq!(omitted_note._note, None);
+    }
 }
