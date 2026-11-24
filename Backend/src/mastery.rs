@@ -47,13 +47,15 @@ pub async fn get_raw_mastery_ranks(leaderboard: &Leaderboard) -> RawMasteryData 
             continue;
         }
 
-        let runner_name = utils::get_player_name(&run.run.players[0]).await;
-        if runner_name.is_none() {
+        let Some(player) = run.run.players.first() else {
+            println!("Run {} had no players", run.run.id);
+            continue;
+        };
+
+        let Some(player_name) = utils::get_player_name(player).await else {
             println!("Run {} had no valid player name", run.run.id);
             continue;
-        }
-
-        let player_name = runner_name.unwrap();
+        };
 
         // Keep only the best (highest) mastery for this player
         raw_mastery
@@ -175,5 +177,91 @@ mod tests {
             "New way should keep best mastery of 0.8, got {}",
             mastery_new_way["PlayerA"]
         );
+    }
+
+    #[tokio::test]
+    async fn test_raw_mastery_ranks_empty_players_and_coop() {
+        let lb: Leaderboard = serde_json::from_value(serde_json::json!({
+            "weblink": "https://example.com/lb",
+            "game": "game1",
+            "category": "cat1",
+            "level": null,
+            "platform": null,
+            "region": null,
+            "emulators": null,
+            "video-only": false,
+            "timing": "realtime",
+            "values": {},
+            "links": [],
+            "runs": [
+                {
+                    "place": 1,
+                    "run": {
+                        "id": "run_empty",
+                        "weblink": "https://example.com/runs/run_empty",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT100S", "primary_t": 100.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                },
+                {
+                    "place": 2,
+                    "run": {
+                        "id": "run_coop",
+                        "weblink": "https://example.com/runs/run_coop",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [
+                            { "rel": "guest", "id": null, "name": "PrimaryRunner", "uri": "https://example.com/guests/PrimaryRunner" },
+                            { "rel": "guest", "id": null, "name": "CoopPartner", "uri": "https://example.com/guests/CoopPartner" }
+                        ],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT120S", "primary_t": 120.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                },
+                {
+                    "place": 3,
+                    "run": {
+                        "id": "run_slow",
+                        "weblink": "https://example.com/runs/run_slow",
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": { "status": "verified", "examiner": null, "verify-date": null },
+                        "players": [
+                            { "rel": "guest", "id": null, "name": "SlowRunner", "uri": "https://example.com/guests/SlowRunner" }
+                        ],
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": { "primary": "PT200S", "primary_t": 200.0, "realtime": null, "realtime_t": null, "realtime_noloads": null, "realtime_noloads_t": null, "ingame": null, "ingame_t": null },
+                        "system": { "platform": null, "emulated": false, "region": null },
+                        "splits": null,
+                        "values": {}
+                    }
+                }
+            ]
+        }))
+        .expect("valid test leaderboard");
+
+        let raw = get_raw_mastery_ranks(&lb).await;
+        assert!(raw.mastery_percents.contains_key("PrimaryRunner"));
+        assert!(!raw.mastery_percents.contains_key("CoopPartner"));
     }
 }

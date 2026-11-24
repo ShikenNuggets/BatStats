@@ -73,13 +73,13 @@ async fn get_all_runners(leaderboards: &Vec<Leaderboard>) -> HashSet<String> {
 
     for leaderboard in leaderboards {
         for run in &leaderboard.runs {
-            for player in &run.run.players {
-                let player_name = get_player_name(player).await;
-                if player_name.is_none() {
-                    continue;
-                }
-                runners.insert(player_name.unwrap());
-            }
+            let Some(player) = run.run.players.first() else {
+                continue;
+            };
+            let Some(player_name) = get_player_name(player).await else {
+                continue;
+            };
+            runners.insert(player_name);
         }
     }
 
@@ -121,12 +121,14 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
     }
 
     for run in &leaderboard.runs {
-        let runner_name = get_player_name(run.run.players.first().unwrap()).await;
-        if runner_name.is_none() {
+        let Some(player) = run.run.players.first() else {
             continue;
-        }
+        };
+        let Some(runner_name) = get_player_name(player).await else {
+            continue;
+        };
 
-        run_times.insert(runner_name.unwrap(), run.run.times.primary_t);
+        run_times.insert(runner_name, run.run.times.primary_t);
     }
 
     run_times
@@ -141,13 +143,15 @@ async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32>
     }
 
     for run in &leaderboard.runs {
-        let runner_name = get_player_name(run.run.players.first().unwrap()).await;
-        if runner_name.is_none() {
+        let Some(player) = run.run.players.first() else {
             continue;
-        }
+        };
+        let Some(runner_name) = get_player_name(player).await else {
+            continue;
+        };
 
         let rank_as_i32: i32 = run.place;
-        run_ranks.insert(runner_name.unwrap(), rank_as_i32 - 1);
+        run_ranks.insert(runner_name, rank_as_i32 - 1);
     }
 
     run_ranks
@@ -626,5 +630,102 @@ async fn main() {
         gist_upload::upload_gist("BatStats.json").await.unwrap();
     } else {
         println!("Skipping gist upload (--skip-upload flag is set)");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_leaderboard(runs: Vec<(i32, f64, Vec<&str>)>) -> Leaderboard {
+        let runs_json: Vec<serde_json::Value> = runs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, (place, time, players))| {
+                let players_json: Vec<serde_json::Value> = players
+                    .into_iter()
+                    .map(|name| {
+                        serde_json::json!({
+                            "rel": "guest",
+                            "id": null,
+                            "name": name,
+                            "uri": format!("https://example.com/guests/{name}")
+                        })
+                    })
+                    .collect();
+
+                serde_json::json!({
+                    "place": place,
+                    "run": {
+                        "id": format!("run_{idx}"),
+                        "weblink": format!("https://example.com/runs/run_{idx}"),
+                        "game": "game1",
+                        "level": null,
+                        "category": "cat1",
+                        "comment": null,
+                        "status": {
+                            "status": "verified",
+                            "examiner": null,
+                            "verify-date": null
+                        },
+                        "players": players_json,
+                        "date": "2024-01-01",
+                        "submitted": null,
+                        "times": {
+                            "primary": "PT100S",
+                            "primary_t": time,
+                            "realtime": null,
+                            "realtime_t": null,
+                            "realtime_noloads": null,
+                            "realtime_noloads_t": null,
+                            "ingame": null,
+                            "ingame_t": null
+                        },
+                        "system": {
+                            "platform": null,
+                            "emulated": false,
+                            "region": null
+                        },
+                        "splits": null,
+                        "values": {}
+                    }
+                })
+            })
+            .collect();
+
+        serde_json::from_value(serde_json::json!({
+            "weblink": "https://example.com/lb",
+            "game": "game1",
+            "category": "cat1",
+            "level": null,
+            "platform": null,
+            "region": null,
+            "emulators": null,
+            "video-only": false,
+            "timing": "realtime",
+            "values": {},
+            "runs": runs_json,
+            "links": []
+        }))
+        .expect("valid test leaderboard")
+    }
+
+    #[tokio::test]
+    async fn test_empty_players_and_coop_attribution() {
+        let lb = make_leaderboard(vec![
+            (1, 100.0, vec![]),
+            (2, 120.0, vec!["PrimaryRunner", "CoopPartner"]),
+        ]);
+
+        let runners = get_all_runners(&vec![lb.clone()]).await;
+        assert_eq!(runners, HashSet::from(["PrimaryRunner".to_string()]));
+
+        let times = get_runner_times_map(&lb).await;
+        assert_eq!(times.get("PrimaryRunner"), Some(&120.0));
+        assert!(!times.contains_key("CoopPartner"));
+
+        let ranks = get_runner_ranks_map(&lb).await;
+        assert_eq!(ranks.get("PrimaryRunner"), Some(&1));
+        assert!(!ranks.contains_key("CoopPartner"));
     }
 }
