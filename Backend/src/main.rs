@@ -128,7 +128,11 @@ async fn get_runner_times_map(leaderboard: &Leaderboard) -> HashMap<String, f64>
             continue;
         };
 
-        run_times.insert(runner_name, run.run.times.primary_t);
+        let time = run.run.times.primary_t;
+        run_times
+            .entry(runner_name)
+            .and_modify(|best| *best = best.min(time))
+            .or_insert(time);
     }
 
     run_times
@@ -150,8 +154,11 @@ async fn get_runner_ranks_map(leaderboard: &Leaderboard) -> HashMap<String, i32>
             continue;
         };
 
-        let rank_as_i32: i32 = run.place;
-        run_ranks.insert(runner_name, rank_as_i32 - 1);
+        let rank = run.place - 1;
+        run_ranks
+            .entry(runner_name)
+            .and_modify(|best| *best = (*best).min(rank))
+            .or_insert(rank);
     }
 
     run_ranks
@@ -727,5 +734,23 @@ mod tests {
         let ranks = get_runner_ranks_map(&lb).await;
         assert_eq!(ranks.get("PrimaryRunner"), Some(&1));
         assert!(!ranks.contains_key("CoopPartner"));
+    }
+
+    #[tokio::test]
+    async fn test_multiple_runs_same_player_keeps_best_time_and_rank() {
+        let lb = make_leaderboard(vec![
+            (1, 100.0, vec!["RunnerA"]),
+            (2, 110.0, vec!["RunnerB"]),
+            (3, 150.0, vec!["RunnerA"]),
+            (4, 105.0, vec!["RunnerB"]),
+        ]);
+
+        let times = get_runner_times_map(&lb).await;
+        assert_eq!(times.get("RunnerA"), Some(&100.0));
+        assert_eq!(times.get("RunnerB"), Some(&105.0));
+
+        let ranks = get_runner_ranks_map(&lb).await;
+        assert_eq!(ranks.get("RunnerA"), Some(&0));
+        assert_eq!(ranks.get("RunnerB"), Some(&1));
     }
 }
